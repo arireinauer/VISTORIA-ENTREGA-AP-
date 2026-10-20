@@ -43,6 +43,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .top-in{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;display:flex;align-items:center;gap:12px}
 .top h1{font-family:var(--f-display);font-weight:700;font-size:1.2rem;letter-spacing:.02em;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
 .saved{font-size:.78rem;opacity:.85;white-space:nowrap}
+.savebtn{font:inherit;font-weight:700;font-size:.92rem;padding:7px 14px;border-radius:8px;border:0;background:var(--accent-ink);color:var(--accent);cursor:pointer;flex:none}
 .iconbtn{background:transparent;border:1px solid currentColor;color:inherit;border-radius:8px;padding:6px 10px;font:inherit;font-size:.9rem;cursor:pointer}
 h2{font-family:var(--f-display);font-weight:700;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;margin:0;color:var(--muted)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
@@ -181,6 +182,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
   <button class="iconbtn" id="backBtn" hidden aria-label="Voltar para a lista">‹ Lista</button>
   <h1 id="topTitle">Vistoria de Entrega</h1>
   <span class="saved" id="savedLbl"></span>
+  <button class="savebtn" id="saveBtn" hidden>Salvar</button>
 </div></header>
 
 <main class="wrap" id="app"></main>
@@ -216,7 +218,7 @@ const SUBS = [
     {id:'umid', label:'Indício de umidade', hint:'Existe indício de umidade? Material inchado em algum trecho? Mais gelado ao toque?', type:'check', options:AN, obs:'always'},
   ]},
   {id:'parede', nome:'Parede', items:[
-    {id:'pintura', label:'Tipo de pintura', type:'choice', options:['Acrílica','Óleo'], nophoto:true},
+    {id:'pintura', label:'Tipo de pintura', type:'choice', options:['Acrílica','Látex','Óleo'], nophoto:true},
     {id:'acabpint', label:'Acabamento da pintura', type:'choice', options:['Fosca','Acetinada'], nophoto:true},
     {id:'cor', label:'Cor', type:'choice', options:['Branca','Amarela','Cinza','Outro'], other:'Outro', nophoto:true},
     {id:'visual', label:'Aspecto visual', hint:'Existem manchas, marcas de pincel ou rolo, escorrimento?', type:'check', options:AN, obs:'ifNo'},
@@ -424,7 +426,7 @@ function pendencias(v=V){const out=[];for(const a of v.ambientes){if(!a.ativo)co
 
 /* ============ SALVAR ============ */
 function scheduleSave(){V.atualizado=Date.now();$('#savedLbl').textContent='Salvando…';clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,500)}
-async function saveNow(){try{await dbPut('vistorias',JSON.parse(JSON.stringify(V)));const h=new Date();$('#savedLbl').textContent='Salvo no aparelho '+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')}catch(e){$('#savedLbl').textContent='Erro ao salvar';toast('Não consegui salvar. Verifique o espaço livre do aparelho.')}}
+async function saveNow(){try{await dbPut('vistorias',JSON.parse(JSON.stringify(V)));const h=new Date();$('#savedLbl').textContent='Salvo '+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')}catch(e){$('#savedLbl').textContent='Erro ao salvar';toast('Não consegui salvar. Verifique o espaço livre do aparelho.')}}
 
 function toast(msg,ms=2600){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,ms)}
 
@@ -462,7 +464,7 @@ function homeListHTML(all){
 
 async function showHome(){
   if(saveTimer){clearTimeout(saveTimer);if(V)await saveNow()}
-  V=null;$('#backBtn').hidden=true;$('#foot').hidden=true;$('#topTitle').textContent='Vistoria de Entrega';$('#savedLbl').textContent='';
+  V=null;$('#backBtn').hidden=true;$('#saveBtn').hidden=true;$('#foot').hidden=true;$('#topTitle').textContent='Vistoria de Entrega';$('#savedLbl').textContent='';
   const all=(await dbAll('vistorias')).map(normalize).sort((a,b)=>b.atualizado-a.atualizado);
   const app=$('#app');
   app.innerHTML=`
@@ -478,7 +480,7 @@ async function showHome(){
     if(b.dataset.fweek!==undefined){homeFilter.week=b.dataset.fweek;showHome();return}
     if(b.dataset.open||b.dataset.edit){openVistoria(b.dataset.open||b.dataset.edit);return}
     if(b.dataset.hmail){const box=app.querySelector(`[data-mailbox="${b.dataset.hmail}"]`);box.hidden=!box.hidden;if(!box.hidden)box.querySelector('input').focus();return}
-    if(b.dataset.hpdf){if(busyHome)return;busyHome=true;const t=b.innerHTML;b.textContent='Gerando…';try{await withVistoria(b.dataset.hpdf,async()=>{const {blob,name}=buildPDF();await deliver(blob,name)})}catch(err){toast('Erro ao gerar o PDF.')}b.innerHTML=t;busyHome=false;return}
+    if(b.dataset.hpdf){if(busyHome)return;busyHome=true;const t=b.innerHTML;b.textContent='Gerando…';try{await withVistoria(b.dataset.hpdf,async()=>{if(pendingVideos()&&navigator.onLine!==false){b.textContent='Enviando vídeos…';try{await syncVideos();await saveNow()}catch(e){}}const {blob,name}=buildPDF();await deliver(blob,name)})}catch(err){toast('Erro ao gerar o PDF.')}b.innerHTML=t;busyHome=false;return}
     if(b.dataset.sendmail){sendMail(b.dataset.sendmail,b);return}
     if(b.dataset.hshare){if(pendingShare&&pendingShare.id===b.dataset.hshare){const ps=pendingShare;pendingShare=null;await shareFiles(ps.files,ps.title);b.innerHTML=ICO_MAIL+'Compartilhar';return}
       if(busyHome)return;busyHome=true;b.textContent='Gerando…';try{const r=await withVistoria(b.dataset.hshare,async()=>{const {blob,name}=buildPDF();return {files:[new File([blob],name,{type:'application/pdf'})],title:name}});
@@ -503,7 +505,7 @@ async function loadVistoria(id){V=normalize(await dbGet('vistorias',id));if(!V)r
 
 /* ============ TELA: VISTORIA ============ */
 function showEditor(){
-  $('#backBtn').hidden=false;$('#foot').hidden=false;
+  $('#backBtn').hidden=false;$('#saveBtn').hidden=false;$('#foot').hidden=false;
   $('#topTitle').textContent=V.dados.apartamento?'Apto '+V.dados.apartamento:'Nova vistoria';
   const app=$('#app');
   app.innerHTML=`
@@ -696,11 +698,12 @@ async function handleVideos(files){
   const f=files[0];const rec={id:uid(),kind:'video',blob:f,type:f.type||'video/mp4',name:f.name||'video',size:f.size};
   try{await dbPut('fotos',rec)}catch(e){toast('Não consegui gravar o vídeo. Pode faltar espaço no aparelho.');return}
   videoCache.set(rec.id,{...rec,url:URL.createObjectURL(f)});val.videos.push(rec.id);
-  const el=document.querySelector(`[data-item="${path}"]`);if(el)el.outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();toast('Vídeo salvo');
+  const el=document.querySelector(`[data-item="${path}"]`);if(el)el.outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();toast('Vídeo salvo');setTimeout(autoSync,800);
 }
 function videoName(vv){const m=(vv.name||'').match(/\.(mp4|webm)$/i);const ext=m?m[1].toLowerCase():(/webm/.test(vv.type)?'webm':'mp4');const d=V?V.dados:{};return `Video_Apto_${(d.apartamento||'').replace(/[^\w-]+/g,'_')}_${vv.id}.${ext}`}
 $('#galInput').onchange=e=>handleFiles([...e.target.files]);
 $('#backBtn').onclick=()=>showHome();
+$('#saveBtn').onclick=async()=>{if(!V)return;clearTimeout(saveTimer);V.atualizado=Date.now();await saveNow();if($('#savedLbl').textContent.startsWith('Salvo'))toast('Vistoria salva no aparelho',1600)};
 document.addEventListener('keydown',e=>{const t=e.target;if(e.key==='Enter'&&t.id&&t.id.startsWith('ns-')){e.preventDefault();const b=document.querySelector(`[data-addsub-ok="${t.id.slice(3)}"]`);if(b)b.click()}});
 
 /* ============ TESTE DE UMIDADE (subseção) ============ */
@@ -798,7 +801,7 @@ async function sendMail(id,btn){
   if(busyHome)return;busyHome=true;btn.disabled=true;btn.textContent='Gerando PDF…';msg.textContent='';
   try{
     let fileArgs=false;try{fileArgs=!!(await mcp.listTools()).fileArgs}catch(e){}
-    const out=await withVistoria(id,async()=>{const r=buildPDF();return {...r,d:{...V.dados},folder:V.drive&&V.drive.folderUrl,res:V.resultado}});
+    const out=await withVistoria(id,async()=>{if(pendingVideos()){btn.textContent='Enviando vídeos…';try{await syncVideos();await saveNow()}catch(e){}}const r=buildPDF();return {...r,d:{...V.dados},folder:V.drive&&V.drive.folderUrl,res:V.resultado}});
     let content;if(fileArgs)content={$file:{data:out.blob,name:out.name,type:'application/pdf'}};else if(out.blob.size<700000)content=await blobToB64(out.blob);else throw Object.assign(new Error(),{code:'too_big_inline'});
     btn.textContent='Enviando…';
     const d=out.d;const subject=`Laudo de vistoria de entrega · Apto ${d.apartamento||''} · ${d.empreendimento||''}`.trim();
@@ -832,7 +835,7 @@ function allVideos(){const out=[];for(const a of V.ambientes){if(!a.ativo)contin
 function driveBoxHTML(){if(BUILD==='site')return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Compartilhar</span></div><small style="color:var(--muted)">Envie o PDF e os v\u00eddeos dos testes por WhatsApp, e-mail, Google Drive ou outro app do celular.</small><button class="btn primary" id="shareBtn">${pendingShare&&pendingShare.id===V.id?'Arquivos prontos: toque para compartilhar':'Compartilhar PDF e v\u00eddeos'}</button></div>`;
 const vids=allVideos();const sent=vids.filter(v=>V.drive&&V.drive.videos&&V.drive.videos[v.id]).length;
   return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Google Drive</span></div>
-    <small style="color:var(--muted)">${vids.length?`${sent} de ${vids.length} ${vids.length===1?'vídeo enviado':'vídeos enviados'}.`:'Nenhum vídeo nesta vistoria.'} O envio cria a pasta da vistoria dentro de "Vistorias de Entrega" no seu Drive, com os vídeos e o PDF. Os links dos vídeos entram no PDF. Precisa de internet.</small>
+    <small style="color:var(--muted)">${vids.length?`${sent} de ${vids.length} ${vids.length===1?'vídeo enviado':'vídeos enviados'}.`:'Nenhum vídeo nesta vistoria.'} Os vídeos sobem sozinhos para o Drive quando há internet, e o PDF já sai com os links. Este botão também guarda o PDF na pasta da vistoria, dentro de "Vistorias de Entrega". Os links dos vídeos entram no PDF. Precisa de internet.</small>
     <button class="btn primary" id="driveBtn" ${driveBusy?'disabled':''}>${driveBusy?'Enviando…':'Enviar vídeos e PDF ao Drive'}</button>
     ${V.drive&&V.drive.folderUrl?`<a href="${esc(V.drive.folderUrl)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Abrir a pasta desta vistoria no Drive</a>`:''}
     ${driveMsg?`<div class="note" id="driveSt">${driveMsg}</div>`:''}</div>`}
@@ -855,20 +858,32 @@ async function uploadFile(mcp,fileArgs,blob,name,type){
   let content;if(fileArgs)content={$file:{data:blob,name,type}};else if(blob.size<700000)content=await blobToB64(blob);else{const e=new Error('big');e.code='too_big_inline';throw e}
   const r=await mcp.callTool(DRIVE,'create_file',{title:name,parentId:V.drive.folderId,contentMimeType:type,base64Content:content,disableConversionToGoogleType:true});
   const f=pickFile(r.payload);if(!f)throw Object.assign(new Error('no id'),{code:'tool_error'});return {id:f.id,url:f.url||`https://drive.google.com/file/d/${f.id}/view`}}
-async function sendToDrive(){
-  if(driveBusy)return;const mcp=await getMcp();
-  if(!mcp){setDriveMsg('O envio ao Drive só funciona com o app aberto dentro do Claude e com internet.');return}
-  if(navigator.onLine===false){setDriveMsg('Sem internet agora. Os vídeos continuam guardados no aparelho; envie quando tiver sinal.');return}
-  driveBusy=true;setDriveMsg('Preparando a pasta no Drive…');const fails=[];
-  try{
-    let fileArgs=false;try{fileArgs=!!(await mcp.listTools()).fileArgs}catch(e){}
-    await ensureFolder(mcp);
+async function syncVideos(progress=()=>{}){
+  const mcp=await getMcp();if(!mcp)throw Object.assign(new Error(),{code:'no_mcp'});
+  let fileArgs=false;try{fileArgs=!!(await mcp.listTools()).fileArgs}catch(e){}
+  const fails=[];
+  if(!allVideos().length)return {mcp,fileArgs,fails};
+  await ensureFolder(mcp);
     const pend=allVideos().filter(v=>!V.drive.videos[v.id]);let n=0;
-    for(const v of pend){const vv=videoCache.get(v.id);if(!vv)continue;n++;setDriveMsg(`Enviando vídeo ${n} de ${pend.length}…`);
+    for(const v of pend){const vv=videoCache.get(v.id);if(!vv)continue;n++;progress(`Enviando vídeo ${n} de ${pend.length} ao Drive…`);
       if(vv.size>16*1024*1024){fails.push(`${v.label}: maior que 16 MB, grave um vídeo mais curto`);continue}
       const [type,ext]=driveVideoType(vv);const d=V.dados;const name=`Video_Apto_${(d.apartamento||'').replace(/[^\w-]+/g,'_')}_${v.label.replace(/ › /g,'_').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_')}.${ext}`;
       try{V.drive.videos[v.id]=await uploadFile(mcp,fileArgs,vv.blob,name,type);await saveNow()}
       catch(e){if(FATAL.includes(e.code))throw e;fails.push(`${v.label}: ${e.code==='too_big_inline'?'este aparelho não permite enviar arquivos grandes daqui':driveErr(e)}`)}}
+  return {mcp,fileArgs,fails};
+}
+const pendingVideos=()=>BUILD==='claude'&&V?allVideos().filter(v=>!(V.drive&&V.drive.videos&&V.drive.videos[v.id])).length:0;
+async function autoSync(){if(BUILD!=='claude'||!V||driveBusy||navigator.onLine===false||!pendingVideos())return;const vid=V.id;driveBusy=true;
+  try{const r=await syncVideos(m=>{if(V&&V.id===vid)$('#savedLbl').textContent=m.replace(' ao Drive…','…')});if(r.fails.length)driveMsg=`Alguns vídeos não subiram:<br>${r.fails.map(esc).join('<br>')}`}catch(e){if(e.code!=='no_mcp')driveMsg=esc(driveErr(e))}
+  driveBusy=false;if(V&&V.id===vid){await saveNow();renderResultado();showEditorRefreshVideos()}}
+window.addEventListener('online',()=>autoSync());
+async function sendToDrive(){
+  if(driveBusy)return;const mcp=await getMcp();
+  if(!mcp){setDriveMsg('O envio ao Drive só funciona com o app aberto dentro do Claude e com internet.');return}
+  if(navigator.onLine===false){setDriveMsg('Sem internet agora. Os vídeos continuam guardados no aparelho; envie quando tiver sinal.');return}
+  driveBusy=true;setDriveMsg('Preparando a pasta no Drive…');let fails=[];
+  try{
+    const r=await syncVideos(setDriveMsg);fails=r.fails;const fileArgs=r.fileArgs;await ensureFolder(mcp);
     setDriveMsg('Enviando o PDF…');
     try{const {blob,name}=buildPDF();const f=await uploadFile(mcp,fileArgs,blob,name,'application/pdf');V.drive.pdfUrl=f.url}catch(e){if(FATAL.includes(e.code))throw e;fails.push('PDF: '+(e.code==='too_big_inline'?'grande demais para enviar daqui':driveErr(e)))}
     await saveNow();
@@ -883,7 +898,10 @@ function showEditorRefreshVideos(){document.querySelectorAll('[data-item]').forE
 $('#pdfBtn').onclick=async()=>{
   if(!window.jspdf){toast('O gerador de PDF não carregou. Abra o app uma vez com internet.');return}
   const btn=$('#pdfBtn');btn.disabled=true;btn.textContent='Gerando…';
-  try{await saveNow();const {blob,name}=buildPDF();await deliver(blob,name)}catch(e){console.error(e);toast('Erro ao gerar o PDF.')}
+  try{await saveNow();let pend=pendingVideos();
+    if(pend&&navigator.onLine!==false&&!driveBusy){driveBusy=true;btn.textContent='Enviando vídeos…';try{await syncVideos(m=>btn.textContent=m.replace(' ao Drive…','…').replace('Enviando vídeo','Vídeo'))}catch(e){}driveBusy=false;await saveNow();pend=pendingVideos();renderResultado();showEditorRefreshVideos();btn.textContent='Gerando…'}
+    if(pend){toast(`${pend} ${pend===1?'vídeo ainda não foi enviado':'vídeos ainda não foram enviados'} ao Drive (sem internet ou com erro), então o PDF sai sem esses links. Gere de novo quando tiver sinal.`,6000)}
+    const {blob,name}=buildPDF();await deliver(blob,name)}catch(e){console.error(e);toast('Erro ao gerar o PDF.')}
   btn.disabled=false;btn.textContent='Gerar PDF';
 };
 async function deliver(blob,name){
@@ -935,7 +953,7 @@ function buildPDF(){
           pair.forEach((p,j)=>{const w=Math.min(gw,hs[j]*p.w/p.h);doc.addImage(p.data,'JPEG',M+j*(gw+4),y+1,w,hs[j])});y+=rh+3;i+=2}}
         if(it.umidTest&&val.v==='Não aprovado'&&val.umid)drawUmid(val.umid);
         (val.videos||[]).forEach((vid,k)=>{const L=V.drive&&V.drive.videos&&V.drive.videos[vid];doc.setFont('helvetica','bold');doc.setFontSize(9);need(5);
-          if(L){col(C.accent);doc.textWithLink(`Vídeo ${k+1} do teste: abrir no Google Drive`,M+2,y+3,{url:L.url})}else{col(C.muted);doc.text(BUILD==='site'?`Vídeo ${k+1} do teste: arquivo enviado à parte`:`Vídeo ${k+1} do teste: ainda não enviado ao Drive`,M+2,y+3)}y+=5});
+          if(L){col(C.accent);doc.textWithLink(`Vídeo ${k+1} do teste: abrir no Google Drive`,M+2,y+3,{url:L.url});y+=4.5;need(5);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.textWithLink(L.url,M+2,y+3,{url:L.url})}else{col(C.muted);doc.text(BUILD==='site'?`Vídeo ${k+1} do teste: arquivo enviado à parte`:`Vídeo ${k+1} do teste: ainda não enviado ao Drive`,M+2,y+3)}y+=5});
         doc.setDrawColor(...C.line);doc.line(M,y,W-M,y);y+=2;
       }
       if(skippedRest(s,sd.vals)){text('Demais itens não se aplicam.',M,9,'italic',C.muted);}
