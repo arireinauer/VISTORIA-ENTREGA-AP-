@@ -169,6 +169,9 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 .area.molh .area-h>span:first-child{color:var(--bad)}
 .valrow{display:flex;gap:8px;align-items:center}
 .valrow input{max-width:180px}
+.footph{display:inline-flex;align-items:center;gap:6px;padding:10px 12px;color:var(--accent)}
+.footph svg{width:20px;height:20px}
+.footph.has{border-color:var(--accent);background:var(--accent-soft)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;z-index:40;max-width:90vw;text-align:center}
 .note{font-size:.85rem;color:var(--muted);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
 .addamb{display:flex;gap:8px}
@@ -188,6 +191,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 <main class="wrap" id="app"></main>
 <div class="foot" id="foot" hidden><div class="foot-in">
   <div class="prog"><span id="progTxt">0 de 0 itens</span><div class="bar-p"><i id="progBar"></i></div></div>
+  <button class="btn footph" id="footPhotos" hidden></button>
   <button class="btn primary" id="pdfBtn">Gerar PDF</button>
 </div></div>
 <div class="sheet" id="sheet" hidden></div>
@@ -472,6 +476,7 @@ async function showHome(){
     ${db?'':'<div class="note">Este navegador não permitiu guardar dados. A vistoria funciona, mas será perdida se a página fechar.</div>'}
     ${homeListHTML(all)}
     <div class="note">Tudo fica gravado neste aparelho, mesmo sem internet. ${BUILD==='site'?'Nada sai do aparelho até você compartilhar.':'Nada sai do aparelho até você enviar ao Drive ou por e-mail.'}</div>
+    ${BUILD==='site'?`<section class="card pad"><h2>Fotos</h2><label class="row" style="gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="saveCopy" ${saveCopyOn()?'checked':''} style="width:22px;height:22px;flex:none;margin-top:2px"><span>Salvar automaticamente uma cópia de cada foto tirada no celular<br><small style="color:var(--muted)">${isIOS()?'No iPhone, cada foto abre uma tela para salvar. Prefira o botão "Salvar todas as fotos no celular" no final da vistoria.':'As fotos vão para a pasta Downloads e aparecem na Galeria.'}</small></span></label></section>`:''}
     <section class="card pad"><h2>Backup</h2><small style="color:var(--muted)">Salva todas as vistorias e fotos num arquivo. Use para trocar de celular ou levar para outro endereço do app. Os vídeos não entram no backup.</small>
       <div class="row"><button class="btn small" id="bkExport">Fazer backup</button><button class="btn small" id="bkImport">Restaurar backup</button></div></section>`;
   $('#newBtn').onclick=async()=>{V=newVistoria();openSet.clear();openSet.add('dados');openSet.add('ambs');await saveNow();showEditor()};
@@ -602,7 +607,8 @@ function renderResultado(){
     <div class="pend">${p.length?`<b style="color:var(--bad);font-size:1.05rem">${p.length} ${p.length===1?'item não aprovado':'itens não aprovados'}</b>`:'<span style="color:var(--muted)">Nenhum item marcado como não aprovado até agora.</span>'}</div>
     <div class="res-seg">${['Aprovado','Não aprovado'].map(o=>`<button class="opt ${o==='Aprovado'?'okv':'badv'}" data-res="${o}" aria-pressed="${V.resultado===o}">${o}</button>`).join('')}</div>
     <label class="f">Observações gerais (opcional)<textarea id="obsGerais" rows="3">${esc(V.obsGerais||'')}</textarea></label>
-    ${driveBoxHTML()}`;
+    ${driveBoxHTML()}
+    <button class="btn" id="saveAllPhotos">Salvar todas as fotos no celular</button>`;
 }
 
 /* ============ STATUS (verdinhos) ============ */
@@ -618,6 +624,7 @@ function refreshStatus(){
       for(const it of visibleItems(s,a.subs[s.id].vals)){const val=a.subs[s.id].vals[it.id];const p=k+'|'+it.id;
         setTick(document.querySelector(`[data-tk-item="${p}"]`),itemDone(it,val));
         const ol=document.querySelector(`[data-obsl="${p}"]`);if(ol)ol.classList.toggle('req',obsRequired(it,val)&&!((val&&val.obs)||'').trim());}}}
+  updateSaveBtns();
   const t=totalStats();$('#progTxt').textContent=`${t.done} de ${t.total} itens preenchidos`;$('#progBar').style.width=(t.total?Math.round(t.done/t.total*100):0)+'%';
 }
 function getVal(path,create=true){const [aid,sid,iid]=path.split('|');const a=V.ambientes.find(x=>x.id===aid);const vals=a.subs[sid].vals;if(!vals[iid]&&create)vals[iid]={};const S=getSub(a,sid);return {a,s:S,it:S.items.find(i=>i.id===iid),val:vals[iid]}}
@@ -645,6 +652,7 @@ function bindEditor(){
       const c={id:'c'+uid(),nome:n};(a.custom=a.custom||[]).push(c);a.subs[c.id]={on:true,vals:{}};openSet.add('s:'+a.id+':'+c.id);
       document.querySelector(`[data-amb="${aid}"]`).outerHTML=ambHTML(a);renderResultado();refreshStatus();scheduleSave();return}
     if(b.id==='driveBtn'){sendToDrive(b);return}
+    if(b.id==='saveAllPhotos'){saveAllPhotos(b);return}
     if(b.id==='shareBtn'){if(pendingShare&&pendingShare.id===V.id){const ps=pendingShare;pendingShare=null;await shareFiles(ps.files,ps.title);renderResultado();return}
       await saveNow();const {blob,name}=buildPDF();const files=[new File([blob],name,{type:'application/pdf'})];
       allVideos().forEach((x,i)=>{const vv=videoCache.get(x.id);if(vv){const [type,ext]=driveVideoType(vv);files.push(new File([vv.blob],`Video_${i+1}_${x.label.replace(/ › /g,'_').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_')}.${ext}`,{type}))}});
@@ -676,19 +684,46 @@ function bindEditor(){
   };
   $('#newAmb').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#addAmbBtn').click()}};
 }
-async function handleFiles(files){
+async function handleFiles(files,fromCam){
   if(!pendingPhotoPath||!files.length)return;const path=pendingPhotoPath;pendingPhotoPath=null;
   toast('Processando foto…',1200);
   const T=photoTarget(path);
   const livre=MAX_FOTOS-T.arr.length;if(files.length>livre){files=files.slice(0,Math.max(0,livre));toast(`Cada item aceita até ${MAX_FOTOS} fotos. Adicionei só ${files.length}.`)}
   for(const f of files){try{const p=await resizeImage(f);p.id=uid();await dbPut('fotos',p);photoCache.set(p.id,p);T.arr.push(p.id)}catch(e){toast('Não consegui ler essa imagem.')}}
   T.rerender();refreshStatus();scheduleSave();
+  if(fromCam&&BUILD==='site'&&saveCopyOn()){files.forEach((f,i)=>{const nm=`Foto_Apto_${slug(V.dados.apartamento)||'sem'}_${slug(photoLabel(path))}_${stamp()}${files.length>1?'_'+(i+1):''}.jpg`;rawDownload(f,nm)})}
 }
+const slug=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_').replace(/^_|_$/g,'');
+const stamp=()=>{const d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'_'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padStart(2,'0')};
+function photoLabel(path){const parts=path.split('|');if(parts[0]==='U'){const a=V.ambientes.find(x=>x.id===parts[1]);return (a?a.nome:'')+'_Teste_umidade'}const a=V.ambientes.find(x=>x.id===parts[0]);const S=a?getSub(a,parts[1]):null;return (a?a.nome:'')+'_'+(S?S.nome:'')}
+const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function saveCopyOn(){try{const v=localStorage.getItem('vist-savecopy');return v===null?!isIOS():v==='1'}catch(e){return !isIOS()}}
+function rawDownload(blob,name){try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),8000)}catch(e){}}
+function allPhotoList(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const k in sd.vals){const vv=sd.vals[k];(vv.fotos||[]).forEach(f=>out.push({f,label:a.nome+'_'+s.nome}));umidPhotoIds(vv).forEach(f=>out.push({f,label:a.nome+'_Teste_umidade'}))}}}return out}
+function dataURLtoFile(du,name){const [h,b64]=du.split(',');const bin=atob(b64);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new File([u8],name,{type:(h.match(/data:([^;]+)/)||[])[1]||'image/jpeg'})}
+function unsavedPhotos(){const sv=(V&&V.fotosSalvas)||{};return allPhotoList().filter(x=>photoCache.get(x.f)&&!sv[x.f])}
+function updateSaveBtns(){if(!V)return;const all=allPhotoList().filter(x=>photoCache.get(x.f)).length;const n=unsavedPhotos().length;
+  const t=n?`Salvar ${n} ${n===1?'foto nova':'fotos novas'} no celular`:(all?'Todas as fotos salvas ✓ · salvar de novo':'Salvar fotos no celular');
+  const b1=$('#saveAllPhotos');if(b1&&!b1.dataset.busy)b1.textContent=t;
+  const f=$('#footPhotos');if(f){f.hidden=!all;if(!f.dataset.busy)f.innerHTML=`${CAM}<span>${n?n:'✓'}</span>`;f.classList.toggle('has',n>0);f.setAttribute('aria-label',t)}}
+async function saveAllPhotos(btn){
+  if(pendingShare&&pendingShare.id==='fotos-'+V.id){const ps=pendingShare;pendingShare=null;const r=await shareFiles(ps.files,ps.title);if(r!=='cancel')markSaved(ps.ids);return}
+  let list=unsavedPhotos();if(!list.length)list=allPhotoList().filter(x=>photoCache.get(x.f));
+  if(!list.length){toast('Nenhuma foto nesta vistoria ainda.');return}
+  const ap=slug(V.dados.apartamento)||'sem';const base=Object.keys(V.fotosSalvas||{}).length;
+  const files=list.map((x,i)=>dataURLtoFile(photoCache.get(x.f).data,`Foto_Apto_${ap}_${slug(x.label)}_${String(base+i+1).padStart(3,'0')}.jpg`));
+  const ids=list.map(x=>x.f);
+  const r=await shareFiles(files,`Fotos Apto ${V.dados.apartamento||''}`,true);
+  if(r==='retry'){pendingShare={id:'fotos-'+V.id,files,title:'Fotos',ids};btn.textContent=`${files.length} fotos prontas: toque de novo para salvar`;btn.dataset.busy='1';return}
+  if(r==='cancel'){toast('Nada foi salvo.',1600);return}
+  markSaved(ids);
+}
+function markSaved(ids){V.fotosSalvas=V.fotosSalvas||{};ids.forEach(id=>V.fotosSalvas[id]=1);scheduleSave();['saveAllPhotos','footPhotos'].forEach(i=>{const e=$('#'+i);if(e)delete e.dataset.busy});updateSaveBtns();toast(`${ids.length} ${ids.length===1?'foto enviada':'fotos enviadas'} para salvar`,1800)}
 function resizeImage(file){return new Promise((res,rej)=>{const url=URL.createObjectURL(file);const img=new Image();
   img.onload=()=>{const MAX=1400;let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,MAX/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
     const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res({data:c.toDataURL('image/jpeg',0.72),w,h})};
   img.onerror=()=>{URL.revokeObjectURL(url);rej()};img.src=url})}
-$('#camInput').onchange=e=>handleFiles([...e.target.files]);
+$('#camInput').onchange=e=>handleFiles([...e.target.files],true);
 $('#vidInput').onchange=e=>handleVideos([...e.target.files]);
 $('#vidGalInput').onchange=e=>handleVideos([...e.target.files]);
 async function handleVideos(files){
@@ -703,6 +738,7 @@ async function handleVideos(files){
 function videoName(vv){const m=(vv.name||'').match(/\.(mp4|webm)$/i);const ext=m?m[1].toLowerCase():(/webm/.test(vv.type)?'webm':'mp4');const d=V?V.dados:{};return `Video_Apto_${(d.apartamento||'').replace(/[^\w-]+/g,'_')}_${vv.id}.${ext}`}
 $('#galInput').onchange=e=>handleFiles([...e.target.files]);
 $('#backBtn').onclick=()=>showHome();
+$('#footPhotos').onclick=()=>{if(V)saveAllPhotos($('#footPhotos'))};
 $('#saveBtn').onclick=async()=>{if(!V)return;clearTimeout(saveTimer);V.atualizado=Date.now();await saveNow();if($('#savedLbl').textContent.startsWith('Salvo'))toast('Vistoria salva no aparelho',1600)};
 document.addEventListener('keydown',e=>{const t=e.target;if(e.key==='Enter'&&t.id&&t.id.startsWith('ns-')){e.preventDefault();const b=document.querySelector(`[data-addsub-ok="${t.id.slice(3)}"]`);if(b)b.click()}});
 
@@ -780,6 +816,7 @@ async function shareFiles(files,title,firstTry){
 async function exportBackup(){try{const vs=await dbAll('vistorias');const fs=(await dbAll('fotos')).filter(f=>f.kind!=='video'&&f.data);
   const data=JSON.stringify({app:'vistoria-entrega',versao:1,criado:new Date().toISOString(),vistorias:vs,fotos:fs});
   await deliver(new Blob([data],{type:'application/json'}),`Backup_vistorias_${today()}.json`)}catch(e){toast('Não consegui gerar o backup.')}}
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='saveCopy'){try{localStorage.setItem('vist-savecopy',e.target.checked?'1':'0')}catch(_){}toast(e.target.checked?'As fotos tiradas vão ser salvas no celular':'Cópia automática desligada',1800)}});
 $('#bkInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());if(j.app!=='vistoria-entrega')throw 0;
   for(const p of j.fotos||[])await dbPut('fotos',p);for(const v of j.vistorias||[])await dbPut('vistorias',v);toast(`${(j.vistorias||[]).length} vistorias restauradas`);showHome()}catch(err){toast('Arquivo de backup inválido.')}};
 
