@@ -205,6 +205,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 
 <script>
 const BUILD='site';
+const APP_VERSION='20/10 · 20h50';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -477,6 +478,7 @@ async function showHome(){
     ${homeListHTML(all)}
     <div class="note">Tudo fica gravado neste aparelho, mesmo sem internet. ${BUILD==='site'?'Nada sai do aparelho até você compartilhar.':'Nada sai do aparelho até você enviar ao Drive ou por e-mail.'}</div>
     ${BUILD==='site'?`<section class="card pad"><h2>Fotos</h2><label class="row" style="gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="saveCopy" ${saveCopyOn()?'checked':''} style="width:22px;height:22px;flex:none;margin-top:2px"><span>Salvar automaticamente uma cópia de cada foto tirada no celular<br><small style="color:var(--muted)">${isIOS()?'No iPhone, cada foto abre uma tela para salvar. Prefira o botão "Salvar todas as fotos no celular" no final da vistoria.':'As fotos vão para a pasta Downloads e aparecem na Galeria.'}</small></span></label></section>`:''}
+    <small style="color:var(--muted);text-align:center">Versão do app: ${APP_VERSION}</small>
     <section class="card pad"><h2>Backup</h2><small style="color:var(--muted)">Salva todas as vistorias e fotos num arquivo. Use para trocar de celular ou levar para outro endereço do app. Os vídeos não entram no backup.</small>
       <div class="row"><button class="btn small" id="bkExport">Fazer backup</button><button class="btn small" id="bkImport">Restaurar backup</button></div></section>`;
   $('#newBtn').onclick=async()=>{V=newVistoria();openSet.clear();openSet.add('dados');openSet.add('ambs');await saveNow();showEditor()};
@@ -705,7 +707,7 @@ function unsavedPhotos(){const sv=(V&&V.fotosSalvas)||{};return allPhotoList().f
 function updateSaveBtns(){if(!V)return;const all=allPhotoList().filter(x=>photoCache.get(x.f)).length;const n=unsavedPhotos().length;
   const t=n?`Salvar ${n} ${n===1?'foto nova':'fotos novas'} no celular`:(all?'Todas as fotos salvas ✓ · salvar de novo':'Salvar fotos no celular');
   const b1=$('#saveAllPhotos');if(b1&&!b1.dataset.busy)b1.textContent=t;
-  const f=$('#footPhotos');if(f){f.hidden=!all;if(!f.dataset.busy)f.innerHTML=`${CAM}<span>${n?n:'✓'}</span>`;f.classList.toggle('has',n>0);f.setAttribute('aria-label',t)}}
+  const f=$('#footPhotos');if(f){f.hidden=false;if(!f.dataset.busy)f.innerHTML=`${CAM}<span>${n?n:(all?'✓':'0')}</span>`;f.classList.toggle('has',n>0);f.setAttribute('aria-label',t)}}
 async function saveAllPhotos(btn){
   if(pendingShare&&pendingShare.id==='fotos-'+V.id){const ps=pendingShare;pendingShare=null;const r=await shareFiles(ps.files,ps.title);if(r!=='cancel')markSaved(ps.ids);return}
   let list=unsavedPhotos();if(!list.length)list=allPhotoList().filter(x=>photoCache.get(x.f));
