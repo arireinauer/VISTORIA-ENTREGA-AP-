@@ -171,7 +171,9 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 .valrow input{max-width:180px}
 .footph{display:inline-flex;align-items:center;gap:6px;padding:10px 12px;color:var(--accent)}
 .footph svg{width:20px;height:20px}
-.footph.has{border-color:var(--accent);background:var(--accent-soft)}
+.footph.bad,.mediabtn.bad{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.footph.ok,.mediabtn.ok{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.footph span{font-weight:700;min-width:1ch}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;z-index:40;max-width:90vw;text-align:center}
 .note{font-size:.85rem;color:var(--muted);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
 .addamb{display:flex;gap:8px}
@@ -205,7 +207,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 
 <script>
 const BUILD='site';
-const APP_VERSION='20/10 · 20h50';
+const APP_VERSION='20/10 · 21h00';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -477,7 +479,7 @@ async function showHome(){
     ${db?'':'<div class="note">Este navegador não permitiu guardar dados. A vistoria funciona, mas será perdida se a página fechar.</div>'}
     ${homeListHTML(all)}
     <div class="note">Tudo fica gravado neste aparelho, mesmo sem internet. ${BUILD==='site'?'Nada sai do aparelho até você compartilhar.':'Nada sai do aparelho até você enviar ao Drive ou por e-mail.'}</div>
-    ${BUILD==='site'?`<section class="card pad"><h2>Fotos</h2><label class="row" style="gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="saveCopy" ${saveCopyOn()?'checked':''} style="width:22px;height:22px;flex:none;margin-top:2px"><span>Salvar automaticamente uma cópia de cada foto tirada no celular<br><small style="color:var(--muted)">${isIOS()?'No iPhone, cada foto abre uma tela para salvar. Prefira o botão "Salvar todas as fotos no celular" no final da vistoria.':'As fotos vão para a pasta Downloads e aparecem na Galeria.'}</small></span></label></section>`:''}
+    ${BUILD==='site'?`<section class="card pad"><h2>Fotos</h2><label class="row" style="gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="saveCopy" ${saveCopyOn()?'checked':''} style="width:22px;height:22px;flex:none;margin-top:2px"><span>Salvar automaticamente uma cópia de cada foto tirada no celular<br><small style="color:var(--muted)">${isIOS()?'No iPhone, cada foto abre uma tela para salvar. Prefira o botão de mídia (ícone de foto na barra de baixo da vistoria): vermelho quando falta salvar, verde quando está tudo salvo.':'As fotos vão para a pasta Downloads e aparecem na Galeria.'}</small></span></label></section>`:''}
     <small style="color:var(--muted);text-align:center">Versão do app: ${APP_VERSION}</small>
     <section class="card pad"><h2>Backup</h2><small style="color:var(--muted)">Salva todas as vistorias e fotos num arquivo. Use para trocar de celular ou levar para outro endereço do app. Os vídeos não entram no backup.</small>
       <div class="row"><button class="btn small" id="bkExport">Fazer backup</button><button class="btn small" id="bkImport">Restaurar backup</button></div></section>`;
@@ -597,7 +599,7 @@ function itemHTML(a,s,it){
     ${full?`<span class="hint" style="margin:0">Limite de ${MAX_FOTOS} fotos atingido</span>`:`<button class="photo-btn ${it.photo&&!fotos.length?'need':''}" data-cam="${path}">${CAM}Foto</button>
     <button class="photo-btn" data-gal="${path}">Galeria</button><span class="hint" style="margin:0">${fotos.length}/${MAX_FOTOS}</span>`}</div>`;
   const vids=val.videos||[];
-  const vh=!it.test?'':`<div class="vids">${vids.map(id=>{const vv=videoCache.get(id);return vv?`<div class="vthumb"><video src="${vv.url}" controls playsinline preload="metadata"></video><div class="row">${V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':'<span class="pill na">Só no aparelho</span>'}<button class="btn small" data-dlvid="${id}">Baixar</button><button class="btn small danger" data-delvid="${path}|${id}">Remover</button></div></div>`:''}).join('')}
+  const vh=!it.test?'':`<div class="vids">${vids.map(id=>{const vv=videoCache.get(id);return vv?`<div class="vthumb"><video src="${vv.url}" controls playsinline preload="metadata"></video><div class="row">${BUILD==='site'?((V.fotosSalvas||{})[id]?'<span class="pill ok">Salvo no celular</span>':'<span class="pill bad">Não salvo no celular</span>'):(V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':'<span class="pill na">Só no aparelho</span>')}<button class="btn small" data-dlvid="${id}">Baixar</button><button class="btn small danger" data-delvid="${path}|${id}">Remover</button></div></div>`:''}).join('')}
     ${vids.length>=MAX_VIDEOS?`<span class="hint" style="margin:0">Limite de ${MAX_VIDEOS} vídeos atingido</span>`:`${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?`<span class="obs-l req">${(it.videoMin||1)>1?`Grave ${it.videoMin} vídeos do teste (obrigatório)`:'Vídeo do teste obrigatório'}</span>`:''}<div class="row"><button class="photo-btn vid ${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?'need':''}" data-vid="${path}">${VID}Gravar vídeo</button><button class="photo-btn vid" data-vidgal="${path}">Vídeo da galeria</button><span class="hint" style="margin:0">${vids.length}/${MAX_VIDEOS}</span></div>`}</div>`;
   return `<div class="item" data-item="${path}">
     <div class="item-h"><span class="q">${it.test?TESTBADGE:''}${esc(it.label)}</span><span class="tick" data-tk-item="${path}">${CHECK}</span></div>
@@ -610,7 +612,7 @@ function renderResultado(){
     <div class="res-seg">${['Aprovado','Não aprovado'].map(o=>`<button class="opt ${o==='Aprovado'?'okv':'badv'}" data-res="${o}" aria-pressed="${V.resultado===o}">${o}</button>`).join('')}</div>
     <label class="f">Observações gerais (opcional)<textarea id="obsGerais" rows="3">${esc(V.obsGerais||'')}</textarea></label>
     ${driveBoxHTML()}
-    <button class="btn" id="saveAllPhotos">Salvar todas as fotos no celular</button>`;
+    <button class="btn mediabtn" id="saveAllPhotos">Salvar fotos e vídeos no celular</button>`;
 }
 
 /* ============ STATUS (verdinhos) ============ */
@@ -703,24 +705,30 @@ function saveCopyOn(){try{const v=localStorage.getItem('vist-savecopy');return v
 function rawDownload(blob,name){try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),8000)}catch(e){}}
 function allPhotoList(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const k in sd.vals){const vv=sd.vals[k];(vv.fotos||[]).forEach(f=>out.push({f,label:a.nome+'_'+s.nome}));umidPhotoIds(vv).forEach(f=>out.push({f,label:a.nome+'_Teste_umidade'}))}}}return out}
 function dataURLtoFile(du,name){const [h,b64]=du.split(',');const bin=atob(b64);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new File([u8],name,{type:(h.match(/data:([^;]+)/)||[])[1]||'image/jpeg'})}
-function unsavedPhotos(){const sv=(V&&V.fotosSalvas)||{};return allPhotoList().filter(x=>photoCache.get(x.f)&&!sv[x.f])}
-function updateSaveBtns(){if(!V)return;const all=allPhotoList().filter(x=>photoCache.get(x.f)).length;const n=unsavedPhotos().length;
-  const t=n?`Salvar ${n} ${n===1?'foto nova':'fotos novas'} no celular`:(all?'Todas as fotos salvas ✓ · salvar de novo':'Salvar fotos no celular');
-  const b1=$('#saveAllPhotos');if(b1&&!b1.dataset.busy)b1.textContent=t;
-  const f=$('#footPhotos');if(f){f.hidden=false;if(!f.dataset.busy)f.innerHTML=`${CAM}<span>${n?n:(all?'✓':'0')}</span>`;f.classList.toggle('has',n>0);f.setAttribute('aria-label',t)}}
+const ICO_MEDIA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3.5 17l5-5 4 4 2.5-2.5L20.5 18"/></svg>';
+function allMediaList(){const out=allPhotoList().filter(x=>photoCache.get(x.f)).map(x=>({...x,kind:'foto'}));
+  for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const k in sd.vals){(sd.vals[k].videos||[]).forEach(f=>{if(videoCache.get(f))out.push({f,label:a.nome+'_'+s.nome,kind:'video'})})}}}return out}
+function unsavedMedia(){const sv=(V&&V.fotosSalvas)||{};return allMediaList().filter(x=>!sv[x.f])}
+function updateSaveBtns(){if(!V)return;const all=allMediaList();const un=unsavedMedia();const n=un.length;
+  const nf=un.filter(x=>x.kind==='foto').length,nv=n-nf;
+  const desc=[nf?`${nf} ${nf===1?'foto':'fotos'}`:'',nv?`${nv} ${nv===1?'vídeo':'vídeos'}`:''].filter(Boolean).join(' e ');
+  const t=n?`Salvar ${desc} no celular`:(all.length?'Todas as mídias salvas ✓ · salvar de novo':'Nenhuma foto ou vídeo ainda');
+  const b1=$('#saveAllPhotos');if(b1&&!b1.dataset.busy){b1.textContent=t;b1.className='btn mediabtn '+(n?'bad':all.length?'ok':'')}
+  const f=$('#footPhotos');if(f){f.hidden=false;if(!f.dataset.busy)f.innerHTML=`${ICO_MEDIA}<span>${n?n:(all.length?'✓':'')}</span>`;f.className='btn footph '+(n?'bad':all.length?'ok':'');f.setAttribute('aria-label',t);f.title=t}}
 async function saveAllPhotos(btn){
   if(pendingShare&&pendingShare.id==='fotos-'+V.id){const ps=pendingShare;pendingShare=null;const r=await shareFiles(ps.files,ps.title);if(r!=='cancel')markSaved(ps.ids);return}
-  let list=unsavedPhotos();if(!list.length)list=allPhotoList().filter(x=>photoCache.get(x.f));
-  if(!list.length){toast('Nenhuma foto nesta vistoria ainda.');return}
+  let list=unsavedMedia();if(!list.length)list=allMediaList();
+  if(!list.length){toast('Nenhuma foto ou vídeo nesta vistoria ainda.');return}
   const ap=slug(V.dados.apartamento)||'sem';const base=Object.keys(V.fotosSalvas||{}).length;
-  const files=list.map((x,i)=>dataURLtoFile(photoCache.get(x.f).data,`Foto_Apto_${ap}_${slug(x.label)}_${String(base+i+1).padStart(3,'0')}.jpg`));
+  const files=list.map((x,i)=>{const num=String(base+i+1).padStart(3,'0');if(x.kind==='foto')return dataURLtoFile(photoCache.get(x.f).data,`Foto_Apto_${ap}_${slug(x.label)}_${num}.jpg`);
+    const vv=videoCache.get(x.f);const [type,ext]=driveVideoType(vv);return new File([vv.blob],`Video_Apto_${ap}_${slug(x.label)}_${num}.${ext}`,{type})});
   const ids=list.map(x=>x.f);
-  const r=await shareFiles(files,`Fotos Apto ${V.dados.apartamento||''}`,true);
-  if(r==='retry'){pendingShare={id:'fotos-'+V.id,files,title:'Fotos',ids};btn.textContent=`${files.length} fotos prontas: toque de novo para salvar`;btn.dataset.busy='1';return}
+  const r=await shareFiles(files,`Fotos e vídeos Apto ${V.dados.apartamento||''}`,true);
+  if(r==='retry'){pendingShare={id:'fotos-'+V.id,files,title:'Mídia',ids};btn.textContent=`${files.length} arquivos prontos: toque de novo`;btn.dataset.busy='1';return}
   if(r==='cancel'){toast('Nada foi salvo.',1600);return}
   markSaved(ids);
 }
-function markSaved(ids){V.fotosSalvas=V.fotosSalvas||{};ids.forEach(id=>V.fotosSalvas[id]=1);scheduleSave();['saveAllPhotos','footPhotos'].forEach(i=>{const e=$('#'+i);if(e)delete e.dataset.busy});updateSaveBtns();toast(`${ids.length} ${ids.length===1?'foto enviada':'fotos enviadas'} para salvar`,1800)}
+function markSaved(ids){V.fotosSalvas=V.fotosSalvas||{};ids.forEach(id=>V.fotosSalvas[id]=1);scheduleSave();['saveAllPhotos','footPhotos'].forEach(i=>{const e=$('#'+i);if(e)delete e.dataset.busy});updateSaveBtns();if(BUILD==='site')showEditorRefreshVideos();toast(`${ids.length} ${ids.length===1?'arquivo enviado':'arquivos enviados'} para salvar`,1800)}
 function resizeImage(file){return new Promise((res,rej)=>{const url=URL.createObjectURL(file);const img=new Image();
   img.onload=()=>{const MAX=1400;let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,MAX/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
     const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res({data:c.toDataURL('image/jpeg',0.72),w,h})};
@@ -735,7 +743,7 @@ async function handleVideos(files){
   const f=files[0];const rec={id:uid(),kind:'video',blob:f,type:f.type||'video/mp4',name:f.name||'video',size:f.size};
   try{await dbPut('fotos',rec)}catch(e){toast('Não consegui gravar o vídeo. Pode faltar espaço no aparelho.');return}
   videoCache.set(rec.id,{...rec,url:URL.createObjectURL(f)});val.videos.push(rec.id);
-  const el=document.querySelector(`[data-item="${path}"]`);if(el)el.outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();toast('Vídeo salvo');setTimeout(autoSync,800);
+  const el=document.querySelector(`[data-item="${path}"]`);if(el)el.outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();toast('Vídeo gravado no app');setTimeout(autoSync,800);
 }
 function videoName(vv){const m=(vv.name||'').match(/\.(mp4|webm)$/i);const ext=m?m[1].toLowerCase():(/webm/.test(vv.type)?'webm':'mp4');const d=V?V.dados:{};return `Video_Apto_${(d.apartamento||'').replace(/[^\w-]+/g,'_')}_${vv.id}.${ext}`}
 $('#galInput').onchange=e=>handleFiles([...e.target.files]);
