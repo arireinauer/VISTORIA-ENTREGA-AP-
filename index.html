@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F5A6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vistoria">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Vistoria de Entrega</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<script src="jspdf.umd.min.js"></script>
+<style>
+/* Layout: uma coluna de fichas empilhadas (estilo prancheta de obra), ambientes e subtemas em sanfona, barra fixa no rodapé para o PDF */
+:root{
+  --bg:#ECEFF0; --surface:#FFFFFF; --surface-2:#F5F7F7; --ink:#172126; --muted:#5A686F; --line:#D2D9DC;
+  --accent:#1F5A6B; --accent-ink:#FFFFFF; --accent-soft:#DCEBEF;
+  --ok:#1C7443; --ok-bg:#DCF0E3; --bad:#AE2A21; --bad-bg:#F8DFDC; --na:#5F686C; --na-bg:#E3E7E8;
+  --warn:#8A5A00;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1517; --surface:#172023; --surface-2:#1D282C; --ink:#E5ECEE; --muted:#93A3A9; --line:#2B383D;
+  --accent:#62B4CA; --accent-ink:#0B1A1F; --accent-soft:#1E3A43;
+  --ok:#62C98E; --ok-bg:#173524; --bad:#F08B81; --bad-bg:#3E1D1A; --na:#A0AAAE; --na-bg:#263135; --warn:#E3B45A;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1517; --surface:#172023; --surface-2:#1D282C; --ink:#E5ECEE; --muted:#93A3A9; --line:#2B383D;
+  --accent:#62B4CA; --accent-ink:#0B1A1F; --accent-soft:#1E3A43;
+  --ok:#62C98E; --ok-bg:#173524; --bad:#F08B81; --bad-bg:#3E1D1A; --na:#A0AAAE; --na-bg:#263135; --warn:#E3B45A;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--accent)}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 120px;display:flex;flex-direction:column;gap:14px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--accent);color:var(--accent-ink)}
+.top-in{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;display:flex;align-items:center;gap:12px}
+.top h1{font-family:var(--f-display);font-weight:700;font-size:1.2rem;letter-spacing:.02em;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.saved{font-size:.78rem;opacity:.85;white-space:nowrap}
+.iconbtn{background:transparent;border:1px solid currentColor;color:inherit;border-radius:8px;padding:6px 10px;font:inherit;font-size:.9rem;cursor:pointer}
+h2{font-family:var(--f-display);font-weight:700;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;margin:0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.pad{padding:16px;display:flex;flex-direction:column;gap:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);font-weight:500}
+input[type=text],input[type=date],input[type=number],textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+textarea{min-height:64px;resize:vertical}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.grid2{grid-template-columns:1fr}}
+.btn{font:inherit;font-weight:600;border-radius:10px;padding:12px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.small{padding:8px 12px;font-size:.9rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* home list */
+.vlist{display:flex;flex-direction:column;gap:10px}
+.vcard{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+.vcard .t{flex:1;min-width:0}
+.vcard b{font-family:var(--f-display);font-size:1.15rem;display:block}
+.vcard small{color:var(--muted);display:block}
+.pill{font-size:.75rem;font-weight:600;padding:3px 9px;border-radius:99px;white-space:nowrap;letter-spacing:.03em;text-transform:uppercase}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.bad{background:var(--bad-bg);color:var(--bad)}.pill.na{background:var(--na-bg);color:var(--na)}
+.vwrap{display:flex;flex-direction:column}
+.vwrap .vcard{background:none;border:0}
+.vacts{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 12px}
+.act{font:inherit;font-size:.86rem;font-weight:600;display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--accent);cursor:pointer}
+.act.del{color:var(--bad)}
+.act svg{width:18px;height:18px}
+.mailbox{display:flex;flex-direction:column;gap:8px;padding:0 16px 16px;border-top:1px dashed var(--line);padding-top:12px}
+.mailbox input[type=email]{font:inherit;font-size:16px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+.mailbox[hidden],.addamb[hidden]{display:none}
+.mailmsg{font-size:.88rem;color:var(--accent)}
+.drag{display:inline-grid;place-items:center;width:30px;height:36px;margin:-6px 0 -6px -8px;color:var(--muted);touch-action:none;cursor:grab;flex:none}
+.sorting .amb>.acc-b{display:none!important}
+.amb.dragging{outline:3px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.18);position:relative;z-index:2}
+.filters{display:flex;flex-direction:column;gap:8px}
+.filters .chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.filters .chip{white-space:nowrap;flex:none}
+.chip.small{font-size:.84rem;padding:6px 10px}
+.mgroup{display:flex;flex-direction:column;gap:8px}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--f-display);font-weight:700;font-size:1.1rem;letter-spacing:.03em;padding-top:6px;border-bottom:2px solid var(--accent);padding-bottom:4px;color:var(--accent)}
+.mhead .cnt{font-family:var(--f-body);font-weight:500;font-size:.82rem;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:24px}
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:.92rem;padding:8px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip .x{opacity:.7}
+/* sanfonas */
+.acc>.acc-h{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;background:none;border:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.acc-h .nm{flex:1;min-width:0;font-family:var(--f-display);font-weight:700;font-size:1.15rem;letter-spacing:.02em}
+.acc-h .cnt{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.acc-h .chev{transition:transform .15s;color:var(--muted)}
+.acc.open>.acc-h .chev{transform:rotate(90deg)}
+.acc>.acc-b{display:none;border-top:1px solid var(--line)}
+.acc.open>.acc-b{display:block}
+.amb>.acc-b{padding:12px;display:none;flex-direction:column;gap:10px}
+.amb.open>.acc-b{display:flex}
+.sub{background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.sub>.acc-h{padding:12px 14px}
+.sub>.acc-h .nm{font-size:1.02rem;text-transform:uppercase;letter-spacing:.05em}
+.sub>.acc-b{padding:4px 14px 14px}
+.subtoggles{display:flex;flex-direction:column;gap:6px}
+.subtoggles small{color:var(--muted)}
+/* check verdinho */
+.tick{width:24px;height:24px;border-radius:50%;flex:none;display:inline-grid;place-items:center;border:2px solid var(--line);color:transparent}
+.tick.done{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.tick svg{width:14px;height:14px}
+/* itens */
+.item{padding:14px 0;border-bottom:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
+.item:last-child{border-bottom:0}
+.item-h{display:flex;gap:10px;align-items:flex-start}
+.item-h .q{flex:1;min-width:0;font-weight:600}
+.hint{font-size:.85rem;color:var(--muted);margin-top:-4px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.opt{font:inherit;font-size:.92rem;font-weight:500;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:42px}
+.opt[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.opt.okv[aria-pressed=true]{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.opt.badv[aria-pressed=true]{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.opt.nav[aria-pressed=true]{background:var(--na);border-color:var(--na);color:var(--surface)}
+.obs-l{font-size:.82rem;color:var(--muted);font-weight:500}
+.obs-l.req{color:var(--warn)}
+.photos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.thumb{position:relative;width:76px;height:76px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--surface)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb button{position:absolute;top:3px;right:3px;border:0;border-radius:6px;background:rgba(0,0,0,.6);color:#fff;font:inherit;font-size:.72rem;padding:3px 6px;cursor:pointer}
+.photo-btn{font:inherit;font-size:.88rem;display:inline-flex;gap:6px;align-items:center;padding:8px 12px;border-radius:8px;border:1px dashed var(--accent);color:var(--accent);background:transparent;cursor:pointer}
+.photo-btn svg{width:18px;height:18px}
+.photo-btn.need{border-style:solid;background:var(--accent-soft)}
+.testb{display:inline-flex;align-items:center;gap:4px;margin-right:8px;padding:2px 8px 2px 4px;border-radius:99px;background:var(--bad-bg);color:var(--bad);font-size:.7rem;font-weight:700;letter-spacing:.06em;vertical-align:2px}
+.testb svg{width:16px;height:16px}
+.vids{display:flex;flex-direction:column;gap:8px}
+.vthumb{display:flex;flex-direction:column;gap:6px;max-width:320px}
+.vthumb video{width:100%;max-width:100%;border-radius:8px;background:#000;max-height:220px}
+.photo-btn.vid{border-color:var(--bad);color:var(--bad)}
+.photo-btn.vid.need{border-style:solid;background:var(--bad-bg)}
+.skipnote{font-size:.88rem;color:var(--muted);padding:10px 0}
+/* resultado */
+.res-seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.res-seg .opt{font-family:var(--f-display);font-size:1.15rem;font-weight:700;letter-spacing:.04em;padding:16px;text-transform:uppercase}
+.pend{font-size:.9rem;display:flex;flex-direction:column;gap:4px}
+.pend li{color:var(--bad)}
+.pend ul{margin:0;padding-left:18px}
+.foot{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.foot-in{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:10px;display:flex;gap:10px;align-items:center}
+.foot-in .prog{flex:1;min-width:0;font-size:.85rem;color:var(--muted)}
+.bar-p{height:6px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:4px}
+.bar-p i{display:block;height:100%;background:var(--ok);width:0}
+.umid-btn{display:flex;align-items:center;gap:8px;width:100%;font:inherit;font-weight:600;text-align:left;padding:12px 14px;border-radius:10px;border:2px solid var(--bad);background:var(--bad-bg);color:var(--bad);cursor:pointer}
+.umid-btn svg.th{width:22px;height:22px;flex:none}
+.umid-btn .lbl{flex:1;min-width:0}
+.umid-btn small{display:block;font-weight:400;color:var(--ink);opacity:.8}
+.sheet{position:fixed;inset:0;z-index:30;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheet .top{top:0;padding-top:env(safe-area-inset-top,0px)}
+.ponto{display:flex;flex-direction:column;gap:12px}
+.ponto-h{display:flex;align-items:center;gap:10px}
+.ponto-h b{flex:1;font-family:var(--f-display);font-size:1.2rem;letter-spacing:.03em;text-transform:uppercase;color:var(--bad)}
+.area{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.area-h{display:flex;align-items:center;gap:8px;font-weight:600}
+.area-h>span:first-child{flex:1}
+.area.seca .area-h>span:first-child{color:var(--accent)}
+.area.molh .area-h>span:first-child{color:var(--bad)}
+.valrow{display:flex;gap:8px;align-items:center}
+.valrow input{max-width:180px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;z-index:40;max-width:90vw;text-align:center}
+.note{font-size:.85rem;color:var(--muted);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
+.addamb{display:flex;gap:8px}
+.addamb input{flex:1;min-width:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <button class="iconbtn" id="backBtn" hidden aria-label="Voltar para a lista">‹ Lista</button>
+  <h1 id="topTitle">Vistoria de Entrega</h1>
+  <span class="saved" id="savedLbl"></span>
+</div></header>
+
+<main class="wrap" id="app"></main>
+<div class="foot" id="foot" hidden><div class="foot-in">
+  <div class="prog"><span id="progTxt">0 de 0 itens</span><div class="bar-p"><i id="progBar"></i></div></div>
+  <button class="btn primary" id="pdfBtn">Gerar PDF</button>
+</div></div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="galInput" accept="image/*" multiple hidden>
+<input type="file" id="bkInput" accept=".json,application/json" hidden>
+<input type="file" id="vidInput" accept="video/*" capture="environment" hidden>
+<input type="file" id="vidGalInput" accept="video/*" hidden>
+
+<script>
+const BUILD='site';
+/* ============ ESQUEMA DA VISTORIA ============ */
+const AN = ['Aprovado','Não aprovado'];
+const ANN = ['Aprovado','Não aprovado','Não se aplica'];
+const SUBS = [
+  {id:'piso', nome:'Piso', items:[
+    {id:'tipo', label:'Tipo de piso', type:'choice', options:['Contrapiso','Cerâmica','Laminado','Outros'], other:'Outros'},
+    {id:'conserv', label:'Conservação e integridade', hint:'Fissuras, buracos, riscos, manchas', type:'check', options:AN, obs:'always'},
+    {id:'rejunte', label:'Rejunte', hint:'Existem falhas de preenchimento? Está nivelado? A cor é uniforme? Algum trecho com esfarinhamento?', type:'check', options:ANN, obs:'always'},
+    {id:'oco', label:'Piso oco', hint:'Se não aprovado, é obrigatório gravar o vídeo do teste', type:'check', options:ANN, obs:'always', test:true, videoReqNo:true},
+  ]},
+  {id:'rodape', nome:'Rodapé', items:[
+    {id:'material', label:'Material', type:'choice', options:['Porcelanato','Poliestireno','WPC','Laminado','Não se aplica'], skipOn:'Não se aplica'},
+    {id:'conserv', label:'Conservação', hint:'Tem manchas? Riscos? Locais soltos? Sem cola?', type:'check', options:AN, obs:'always'},
+    {id:'acab', label:'Acabamentos', hint:'Quinas, juntas, cola', type:'check', options:AN, obs:'always'},
+    {id:'umid', label:'Indício de umidade', hint:'Existe indício de umidade? Material inchado em algum trecho? Mais gelado ao toque?', type:'check', options:AN, obs:'always'},
+  ]},
+  {id:'parede', nome:'Parede', items:[
+    {id:'pintura', label:'Tipo de pintura', type:'choice', options:['Acrílica','Óleo'], nophoto:true},
+    {id:'acabpint', label:'Acabamento da pintura', type:'choice', options:['Fosca','Acetinada'], nophoto:true},
+    {id:'cor', label:'Cor', type:'choice', options:['Branca','Amarela','Cinza','Outro'], other:'Outro', nophoto:true},
+    {id:'visual', label:'Aspecto visual', hint:'Existem manchas, marcas de pincel ou rolo, escorrimento?', type:'check', options:AN, obs:'ifNo'},
+    {id:'ondul', label:'Aspecto visual 2: existem ondulações?', hint:'Visualizar com lanterna. Aprovado = sem ondulações', type:'check', options:AN, obs:'ifNo'},
+    {id:'estrut', label:'Estrutural', hint:'Existem trincas? Fissuras?', type:'check', options:AN, obs:'ifNo'},
+    {id:'umid', label:'Umidade', hint:'Algum indício de umidade visual? Algum ponto detectado pelo equipamento?', type:'check', options:AN, obs:'ifNo', umidTest:true},
+  ]},
+  {id:'soleira', nome:'Soleira', items:[
+    {id:'peca', label:'A peça de granito está sem trincas ou lascas?', hint:'Não aprovado = peça com trinca ou lasca', type:'check', options:AN, obs:'ifNo'},
+    {id:'juntas', label:'As juntas estão corretamente preenchidas com rejunte?', type:'check', options:AN, obs:'ifNo'},
+    {id:'caimento', label:'O caimento da água está para fora?', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'teto', nome:'Teto', items:[
+    {id:'tipo', label:'Tipo', type:'choice', options:['PVC','Laje pintada','Forro de gesso','Drywall'], controls:true},
+    {id:'visual', label:'Aspecto visual', hint:'Cor uniforme, sem manchas, marcas de pincel ou rolo, escorrimento', type:'check', options:AN, obs:'ifNo'},
+    {id:'ondul', label:'Aspecto visual 2: existem ondulações?', hint:'Visualizar com lanterna. Aprovado = sem ondulações', type:'check', options:AN, obs:'ifNo'},
+    {id:'juntas', label:'Marcas nas juntas das placas?', hint:'Aprovado = sem marcas nas juntas', type:'check', options:AN, obs:'ifNo', showIf:{item:'tipo',eq:'Drywall'}},
+    {id:'descasc', label:'Pontos descascados?', hint:'Aprovado = sem pontos descascados', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'janela', nome:'Janelas', items:[
+    {id:'material', label:'Material', type:'choice', options:['Alumínio','Madeira','Outro'], other:'Outro'},
+    {id:'tipo', label:'Tipo', type:'choice', options:['Abrir','Basculante','Maxim-ar','Correr'], controls:true},
+    {id:'abre', label:'A janela está abrindo e fechando corretamente, sem travamentos?', type:'check', options:AN, obs:'ifNo'},
+    {id:'vidro', label:'O vidro está sem riscos ou manchas?', hint:'Não aprovado = vidro com risco ou mancha', type:'check', options:AN, obs:'ifNo'},
+    {id:'montante', label:'O montante está alinhado e sem empenamentos?', type:'check', options:AN, obs:'ifNo'},
+    {id:'acab', label:'O acabamento está uniforme, sem amassados, manchas ou desalinhamentos?', type:'check', options:AN, obs:'ifNo'},
+    {id:'peitoril', label:'O peitoril está sem trincas ou lascas?', hint:'Não aprovado = peitoril com trinca ou lasca', type:'check', options:AN, obs:'ifNo'},
+    {id:'drenos', label:'Os drenos do trilho estão abertos e desentupidos na parte externa?', hint:'Verificar nas janelas de correr', type:'check', options:AN, obs:'ifNo', showIf:{item:'tipo',eq:'Correr'}},
+    {id:'borrachas', label:'As borrachas estão inteiras e regulares?', type:'check', options:AN, obs:'ifNo'},
+    {id:'friso', label:'Existe friso (pingadeira) na parte inferior?', hint:'Obrigatório', type:'check', options:['Sim','Não'], bad:'Não', obs:'ifNo'},
+    {id:'escoa', label:'Teste de escoamento', hint:'Garantir que existe caimento para fora. O nível também pode ser usado para validar que não está reto. Gravar 2 vídeos.', type:'check', options:AN, obs:'ifNo', test:true, videoReq:true, videoMin:2},
+  ]},
+  {id:'porta', nome:'Portas', items:[
+    {id:'tipo', label:'Tipo de porta', type:'choice', options:['Abrir','Correr']},
+    {id:'material', label:'Material', type:'choice', options:['Madeira semioca','ACM','Madeira maciça','Outros'], other:'Outros'},
+    {id:'abre', label:'Está abrindo e fechando corretamente?', hint:'Sem pegar no chão e sem ruído', type:'check', options:AN, obs:'ifNo'},
+    {id:'chaves', label:'As chaves estão funcionando corretamente?', type:'check', options:AN, obs:'ifNo'},
+    {id:'ferragens', label:'As ferragens estão todas corretamente encaixadas e sem ferrugem?', type:'check', options:AN, obs:'ifNo'},
+    {id:'pintura', label:'A pintura está uniforme e sem manchas?', type:'check', options:AN, obs:'ifNo'},
+    {id:'contratesta', label:'A contratesta está corretamente instalada?', type:'check', options:AN, obs:'ifNo'},
+    {id:'prumo', label:'A folha está em prumo?', hint:'Ao abrir em 90 graus, deve permanecer parada', type:'check', options:AN, obs:'ifNo'},
+    {id:'umid', label:'Existe indício de umidade?', hint:'Se sim, é obrigatório gravar o vídeo', type:'check', options:['Não','Sim'], bad:'Sim', obs:'ifNo', test:true, videoReqNo:true},
+  ]},
+  {id:'tomadas', nome:'Tomadas', items:[
+    {id:'qtd', label:'Quantidade de tomadas', type:'number', nophoto:true},
+    {id:'teste', label:'Todas testadas e funcionando?', hint:'Inserir foto ou vídeo dos testes', type:'check', options:AN, obs:'ifNo', photo:true, test:true},
+    {id:'volt', label:'Voltagem', type:'choice', options:['127 V','220 V','127 V e 220 V'], nophoto:true},
+    {id:'encaixe', label:'Todos os espelhos estão bem encaixados?', type:'check', options:AN, obs:'ifNo'},
+    {id:'manchas', label:'Todos os espelhos estão sem manchas?', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'interruptor', nome:'Interruptores', items:[
+    {id:'qtd', label:'Quantidade de interruptores', type:'number', nophoto:true},
+    {id:'marca', label:'A marca está conforme o memorial?', type:'check', options:AN, obs:'ifNo', textField:{label:'Marca dos interruptores',required:true}},
+    {id:'teste', label:'Foram testados e estão funcionando?', type:'check', options:AN, obs:'ifNo', test:true},
+  ]},
+  {id:'luminaria', nome:'Luminárias', items:[
+    {id:'tipo', label:'Tipo', type:'choice', options:['Plafon de embutir','Plafon de sobrepor','Foco']},
+    {id:'qtd', label:'Quantidade de luminárias', type:'number', nophoto:true},
+    {id:'func', label:'Estão funcionando?', type:'check', options:['Sim','Não','Não se aplica'], bad:'Não', obs:'ifNo', test:true},
+  ]},
+  {id:'quadro', nome:'Quadro elétrico', items:[
+    {id:'tampa', label:'A tampa do quadro está presente e corretamente encaixada?', type:'check', options:AN, obs:'ifNo'},
+    {id:'ident', label:'Os disjuntores estão corretamente identificados com adesivos?', type:'check', options:AN, obs:'ifNo'},
+    {id:'fiacao', label:'A fiação está corretamente alocada na caixa?', type:'check', options:AN, obs:'ifNo'},
+    {id:'cega', label:'Os espaços vagos estão com tampa cega?', type:'check', options:ANN, obs:'ifNo'},
+    {id:'geral', label:'Existe disjuntor geral?', type:'check', options:AN, obs:'ifNo'},
+    {id:'dr', label:'Existe DR?', hint:'Botão "T", alavanca conjugada e esquema elétrico gráfico (obrigatório por lei, protege contra choques)', type:'check', options:AN, obs:'ifNo'},
+    {id:'drt', label:'O botão T foi testado?', hint:'Para aprovar: ao pressionar o T, o DR deve desarmar instantaneamente', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'dps', label:'Existe DPS (vermelho)?', hint:'Cartuchos com visor de status: branco indica operação normal', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'interfone', nome:'Interfone', items:[
+    {id:'tipo', label:'Tipo', type:'choice', options:['Videoporteiro','Analógico']},
+    {id:'teste', label:'O equipamento foi testado e está acionando a portaria?', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'audio', label:'Qualidade do áudio', type:'check', options:AN, obs:'ifNo'},
+    {id:'acab', label:'Acabamento da instalação', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'ralo', nome:'Ralo', items:[
+    {id:'material', label:'Material', type:'choice', options:['Inox','PVC','Alumínio']},
+    {id:'grelha', label:'A grelha está perfeitamente nivelada com o piso?', type:'check', options:AN, obs:'ifNo'},
+    {id:'rejunte', label:'O rejunte no perímetro está regular e preenchido?', type:'check', options:AN, obs:'ifNo'},
+    {id:'limpo', label:'O ralo está limpo, sem sujeira de obra por dentro?', hint:'Não aprovado = tem sujeira de obra dentro do ralo', type:'check', options:AN, obs:'ifNo'},
+    {id:'lamina', label:'Existe lâmina de água no fundo do ralo?', hint:'A lâmina de água (fecho hídrico) evita mau cheiro', type:'check', options:['Sim','Não'], bad:'Não', obs:'ifNo'},
+  ]},
+  {id:'registro', nome:'Registro de gaveta', items:[
+    {id:'acab', label:'Acabamento e instalação', hint:'Está bem acabado na parede? Pintura regular?', type:'check', options:AN, obs:'ifNo'},
+    {id:'abre', label:'Abre e fecha funcionando corretamente?', hint:'Deve girar de forma suave, sem emperrar ou travar', type:'check', options:AN, obs:'ifNo'},
+    {id:'batente', label:'Ele atinge o batente final sem força excessiva?', type:'check', options:AN, obs:'ifNo'},
+    {id:'estanq', label:'Teste de estanqueidade: o registro está interrompendo o fluxo hidráulico?', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'vaz', label:'Existe vazamento durante o uso?', hint:'Se sim, é obrigatório gravar o vídeo', type:'check', options:['Não','Sim'], bad:'Sim', obs:'ifNo', test:true, videoReqNo:true},
+  ]},
+  {id:'guarda', nome:'Guarda-corpo', items:[
+    {id:'material', label:'Material', type:'choice', options:['Vidro','Alumínio','Ferro','Alvenaria','Outro'], other:'Outro'},
+    {id:'firme', label:'O guarda-corpo está firme e bem fixado?', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'acab', label:'O acabamento está regular?', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'vaso', nome:'Vaso sanitário', items:[
+    {id:'tipo', label:'Tipo', type:'choice', options:['Caixa acoplada','Válvula de descarga (Hydra)']},
+    {id:'marca', label:'A marca está conforme o memorial?', type:'check', options:AN, obs:'ifNo', textField:{label:'Marca do vaso',required:true}},
+    {id:'testehid', label:'Teste hidráulico executado?', hint:'Acionar a descarga e investigar vazamentos e refluxo', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'fixacao', label:'A bacia está bem fixada e vedada com silicone?', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'tanque', nome:'Tanque', items:[
+    {id:'material', label:'Material do tanque', type:'choice', options:['Plástico','Cerâmica','Outro'], other:'Outro'},
+    {id:'tipo', label:'Tipo', type:'choice', options:['Coluna','Parede'], controls:true},
+    {id:'coluna', label:'A coluna está firmemente assentada no piso, sem desnível?', type:'check', options:AN, obs:'ifNo', showIf:{item:'tipo',eq:'Coluna'}},
+    {id:'suspensa', label:'A cuba suspensa está bem fixada?', type:'check', options:AN, obs:'ifNo', showIf:{item:'tipo',eq:'Parede'}},
+    {id:'sifao', label:'Material do sifão', type:'choice', options:['PVC','Metálico','Outro'], other:'Outro'},
+    {id:'testehid', label:'Teste hidráulico', hint:'1) Água contínua. 2) Encher um pouco e soltar. Grave os vídeos. Não aprovar se existir vazamento no sifão.', type:'check', options:AN, obs:'ifNo', test:true, videoReq:true},
+    {id:'silicone', label:'A borda do tanque está corretamente preenchida com silicone?', type:'check', options:AN, obs:'ifNo'},
+    {id:'tipoTorn', label:'Tipo de torneira', type:'choice', options:['Parede','Bancada']},
+    {id:'matTorn', label:'Material da torneira', type:'choice', options:['Aço','Plástico']},
+    {id:'marca', label:'A marca da torneira está de acordo com o memorial?', type:'check', options:AN, obs:'ifNo', textField:{label:'Marca da torneira',required:true}},
+  ]},
+  {id:'cuba', nome:'Cuba e hidráulica', items:[
+    {id:'material', label:'Material da cuba', type:'choice', options:['Inox','Cerâmica']},
+    {id:'fotosbaixo', label:'Fotos por baixo da cuba', hint:'Sifão, ligações e tubulação', type:'photo', photo:true},
+    {id:'matsifao', label:'Material do sifão', type:'choice', options:['PVC','Metálico']},
+    {id:'tiposifao', label:'Tipo de sifão', type:'choice', options:['Copo','Sanfonado']},
+    {id:'testehid', label:'Teste hidráulico: existe vazamento no sifão?', hint:'Teste tipo tampão: encher a cuba com um pouco de água e soltar 1, 2. Testar também com fluxo contínuo. Aprovado = sem vazamento.', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'anel', label:'Existe anel de vedação de borracha entre o sifão e a entrada da tubulação de esgoto?', type:'check', options:['Sim','Não'], bad:'Não', obs:'ifNo'},
+    {id:'curva', label:'A curvatura do sifão está correta?', hint:'Deve ser em S ou U, nunca reta', type:'check', options:AN, obs:'ifNo'},
+  ]},
+  {id:'bancada', nome:'Bancada e torneira', items:[
+    {id:'material', label:'Material da bancada', type:'choice', options:['Granito','Inox','Não se aplica'], skipOn:'Não se aplica'},
+    {id:'fixacao', label:'Fixação', type:'choice', options:['Parede','Gabinete']},
+    {id:'regular', label:'A bancada está regular?', hint:'Possui alguma trinca, fissura ou mancha?', type:'check', options:AN, obs:'ifNo'},
+    {id:'nivel', label:'Teste de nível', hint:'Verificar se a bancada está nivelada', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'maofr', label:'Se a bancada for extensa, existe apoio com mão francesa?', type:'check', options:['Sim','Não','Não se aplica'], bad:'Não', obs:'ifNo'},
+    {id:'altura', label:'A altura de instalação está entre 85 e 90 cm?', type:'check', options:AN, obs:'ifNo'},
+    {id:'torneira', label:'Tipo de torneira', type:'choice', options:['Fixa','Móvel','Não se aplica'], controls:true},
+    {id:'instTorn', label:'Instalação da torneira', type:'choice', options:['Parede','Bancada'], showIf:{item:'torneira',not:'Não se aplica'}},
+    {id:'marca', label:'A torneira é da marca indicada no memorial?', type:'check', options:AN, obs:'ifNo', textField:{label:'Marca da torneira',required:true}, showIf:{item:'torneira',not:'Não se aplica'}},
+    {id:'agua', label:'Água', type:'choice', options:['Fria','Quente e fria'], controls:true, showIf:{item:'torneira',not:'Não se aplica'}},
+    {id:'temp', label:'Teste de temperatura', hint:'Abrir a água quente e verificar se aquece corretamente', type:'check', options:AN, obs:'ifNo', test:true, showIf:[{item:'torneira',not:'Não se aplica'},{item:'agua',eq:'Quente e fria'}]},
+    {id:'fixtorn', label:'A torneira está corretamente fixada e vedada com silicone?', type:'check', options:AN, obs:'ifNo', showIf:{item:'torneira',not:'Não se aplica'}},
+    {id:'fluxo', label:'Ao abrir a torneira, existe gotejamento persistente, vazamento ou falha no fluxo de água?', hint:'Aprovado = sem gotejamento, sem vazamento e fluxo normal. Grave o vídeo do teste.', type:'check', options:AN, obs:'ifNo', test:true, videoReq:true, showIf:{item:'torneira',not:'Não se aplica'}},
+    {id:'estanq', label:'Estanqueidade da bancada', hint:'Jogar água nos cantos da pia e observar se existe vazamento pelo silicone', type:'check', options:AN, obs:'ifNo', test:true},
+    {id:'silicone', label:'O silicone está regular e uniforme?', type:'check', options:AN, obs:'ifNo'},
+  ]},
+];
+SUBS.splice(1,0,{id:'pisobox', nome:'Piso do box', items:[...SUBS[0].items,
+  {id:'caimento', label:'O caimento para o ralo está correto?', hint:'Jogar água e verificar se escoa toda para o ralo, sem empoçar. Grave o vídeo do teste.', type:'check', options:AN, obs:'ifNo', test:true, videoReq:true}]});
+SUBS.splice(2,0,{id:'pisovar', nome:'Piso da varanda', items:[...SUBS[0].items,
+  {id:'caimento', label:'O caimento está correto?', hint:'Teste de água: jogar água e verificar se escoa para o ralo ou para fora, sem empoçar e sem correr para dentro do apartamento. Grave o vídeo do teste.', type:'check', options:AN, obs:'ifNo', test:true, videoReq:true}]});
+const MAX_FOTOS = 10, MAX_VIDEOS = 3;
+const SUB_BY = Object.fromEntries(SUBS.map(s=>[s.id,s]));
+const customSub=c=>({id:c.id,nome:c.nome,custom:true,items:[{id:'aval',label:'Avaliação',type:'check',options:ANN,obs:'ifNo'}]});
+const AVAIL={piso:/^(?!Varanda)/, ralo:/^(Cozinha|Banheiro|Varanda|Área de serviço)/, registro:/^(Cozinha|Banheiro|Área de serviço)/, guarda:/^Varanda/, vaso:/^Banheiro/, tanque:/^(Cozinha|Área de serviço)/, cuba:/^(Cozinha|Banheiro)/, bancada:/^(Cozinha|Banheiro)/, pisobox:/^Banheiro/, pisovar:/^Varanda/};
+const isStdAmb=n=>AMB_DEFAULT.includes(n)||n==='Varanda';
+const subsOf=a=>SUBS.filter(s=>!AVAIL[s.id]||!isStdAmb(a.nome)||AVAIL[s.id].test(a.nome)||(a.subs[s.id]&&a.subs[s.id].on)).concat((a.custom||[]).map(customSub));
+function getSub(a,sid){return SUB_BY[sid]||customSub((a.custom||[]).find(c=>c.id===sid))}
+const AMB_DEFAULT = ['Sala','Cozinha','Varanda/Sacada','Banheiro 1','Banheiro 2','Quarto 1','Quarto 2','Quarto 3','Área de serviço'];
+const defaultSubOn = (subId, amb) => /^Varanda/.test(amb) ? ['pisovar','ralo','guarda','parede','teto','porta','tomadas','interruptor','luminaria'].includes(subId) : ['piso','rodape','parede','teto','janela','porta','tomadas','interruptor','luminaria'].includes(subId) || (amb==='Sala' && (subId==='quadro'||subId==='interfone'||subId==='soleira')) || (amb==='Cozinha' && (subId==='ralo'||subId==='bancada'||subId==='cuba'||subId==='registro')) || (amb==='Área de serviço' && subId==='tanque') || (/^Banheiro/.test(amb) && ['pisobox','ralo','bancada','cuba','vaso'].includes(subId));
+
+/* ============ ARMAZENAMENTO (IndexedDB no aparelho) ============ */
+let db=null; const mem={v:new Map(),f:new Map()};
+function openDB(){return new Promise(res=>{try{const r=indexedDB.open('vistoria-entrega',1);
+  r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('vistorias',{keyPath:'id'});d.createObjectStore('fotos',{keyPath:'id'})};
+  r.onsuccess=()=>{db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})}
+function tx(store,mode,fn){return new Promise((res,rej)=>{try{const t=db.transaction(store,mode);const s=t.objectStore(store);const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error)}catch(e){rej(e)}})}
+async function dbPut(store,obj){if(!db){mem[store==='vistorias'?'v':'f'].set(obj.id,obj);return}return tx(store,'readwrite',s=>s.put(obj))}
+async function dbGet(store,id){if(!db)return mem[store==='vistorias'?'v':'f'].get(id);return tx(store,'readonly',s=>s.get(id))}
+async function dbDel(store,id){if(!db){mem[store==='vistorias'?'v':'f'].delete(id);return}return tx(store,'readwrite',s=>s.delete(id))}
+async function dbAll(store){if(!db)return [...mem[store==='vistorias'?'v':'f'].values()];return tx(store,'readonly',s=>s.getAll())}
+
+/* ============ ESTADO ============ */
+let V=null; const photoCache=new Map(); const openSet=new Set(); let saveTimer=null;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=s=>document.querySelector(s);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const fmtDate=s=>s?s.split('-').reverse().join('/'):'';
+const CHECK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+const CAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 8h4l2-3h6l2 3h4v11H3z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+const VID='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/></svg>';
+const TESTBADGE='<span class="testb" title="Item de teste"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="5.5" fill="currentColor"/></svg>TESTE</span>';
+const videoCache=new Map();
+const CHEV='<svg class="chev" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3l5 5-5 5"/></svg>';
+
+function newAmb(nome,ativo=false){return {id:uid(),nome,ativo,subs:Object.fromEntries(SUBS.map(s=>[s.id,{on:defaultSubOn(s.id,nome),vals:{}}]))}}
+function normalize(v){if(v&&v.ambientes&&!v.mig1){v.mig1=true;for(const a of v.ambientes)for(const k of ['teto','interruptor','luminaria'])if(a.subs&&a.subs[k])a.subs[k].on=true}if(v&&v.ambientes)for(const a of v.ambientes){a.subs=a.subs||{};for(const s of SUBS)if(!a.subs[s.id])a.subs[s.id]={on:defaultSubOn(s.id,a.nome),vals:{}};for(const c of (a.custom||[]))if(!a.subs[c.id])a.subs[c.id]={on:true,vals:{}}}return v}
+function newVistoria(){return {mig1:true,id:uid(),criado:Date.now(),atualizado:Date.now(),dados:{cliente:'',construtora:'',empreendimento:'',apartamento:'',data:today(),vistoriador:lastVistoriador(),rrt:''},ambientes:AMB_DEFAULT.map(n=>newAmb(n)),resultado:'',obsGerais:''}}
+
+/* ============ REGRAS DE PREENCHIMENTO ============ */
+function obsRequired(item,val){if(item.type!=='check'||!val||!val.v)return false;if(val.v==='Não se aplica')return false;return item.obs==='always'||(item.obs==='ifNo'&&val.v===(item.bad||'Não aprovado'))}
+function itemDone(item,val){
+  if(!val)return false;
+  if(item.type==='photo')return (val.fotos||[]).length>0;
+  if(item.type==='number')return val.v!==undefined&&val.v!==null&&String(val.v).trim()!=='';
+  if(!val.v)return false;
+  if(item.other&&val.v===item.other&&!(val.txt||'').trim())return false;
+  if(obsRequired(item,val)&&!(val.obs||'').trim())return false;
+  if(item.textField&&item.textField.required&&!(val.txt||'').trim())return false;
+  if(item.umidTest&&val.v==='Não aprovado'&&!umidDone(val))return false;
+  if((item.videoReq||(item.videoReqNo&&val.v===(item.bad||'Não aprovado')))&&(val.videos||[]).length<(item.videoMin||1))return false;
+  return true;
+}
+function skippedRest(sub,vals){const v=visibleItems(sub,vals);const last=v[v.length-1];return !!(last&&last.skipOn&&vals[last.id]&&vals[last.id].v===last.skipOn&&last!==sub.items[sub.items.length-1])}
+function visibleItems(sub,vals){const out=[];for(const it of sub.items){if(it.showIf){const conds=[].concat(it.showIf);if(!conds.every(cd=>{const c=vals[cd.item];const v=c&&c.v;return cd.eq!==undefined?v===cd.eq:v!==cd.not}))continue}out.push(it);if(it.skipOn&&vals[it.id]&&vals[it.id].v===it.skipOn)break}return out}
+function subStats(amb,subId){const sub=getSub(amb,subId);const vals=amb.subs[subId].vals;const its=visibleItems(sub,vals);const done=its.filter(it=>itemDone(it,vals[it.id])).length;return {done,total:its.length}}
+function ambStats(amb){let d=0,t=0;for(const s of subsOf(amb)){if(!amb.subs[s.id].on)continue;const st=subStats(amb,s.id);d+=st.done;t+=st.total}return {done:d,total:t}}
+function dadosDone(){const d=V.dados;return ['cliente','construtora','empreendimento','apartamento','data','vistoriador','rrt'].every(k=>(d[k]||'').trim())}
+function totalStats(){let d=0,t=0;for(const a of V.ambientes){if(!a.ativo)continue;const s=ambStats(a);d+=s.done;t+=s.total}return {done:d,total:t}}
+function pendencias(v=V){const out=[];for(const a of v.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const it of visibleItems(s,sd.vals)){const val=sd.vals[it.id];if(it.type==='check'&&val&&val.v===(it.bad||'Não aprovado'))out.push({amb:a.nome,sub:s.nome,item:it.label,obs:val.obs||''})}}}return out}
+
+/* ============ SALVAR ============ */
+function scheduleSave(){V.atualizado=Date.now();$('#savedLbl').textContent='Salvando…';clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,500)}
+async function saveNow(){try{await dbPut('vistorias',JSON.parse(JSON.stringify(V)));const h=new Date();$('#savedLbl').textContent='Salvo no aparelho '+String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0')}catch(e){$('#savedLbl').textContent='Erro ao salvar';toast('Não consegui salvar. Verifique o espaço livre do aparelho.')}}
+
+function toast(msg,ms=2600){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,ms)}
+
+/* ============ TELA: LISTA ============ */
+function lastVistoriador(){try{return localStorage.getItem('vist-vistoriador')||''}catch(e){return ''}}
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const MES3=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+let homeFilter={month:'',week:''};
+const ymOf=v=>(v.dados.data||'').slice(0,7)||'sem-data';
+const monthLabel=ym=>{if(ym==='sem-data')return 'Sem data';const [y,m]=ym.split('-');return MESES[+m-1][0].toUpperCase()+MESES[+m-1].slice(1)+' de '+y};
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function weeksOf(ym){const [y,m]=ym.split('-').map(Number);const first=new Date(y,m-1,1),last=new Date(y,m,0);const d=new Date(first);d.setDate(d.getDate()-((d.getDay()+6)%7));const out=[];
+  while(d<=last){const a=new Date(Math.max(d,first)),e=new Date(d);e.setDate(e.getDate()+6);const b=new Date(Math.min(e,last));out.push({key:iso(a),from:iso(a),to:iso(b),label:`${a.getDate()}–${b.getDate()} ${MES3[m-1]}`});d.setDate(d.getDate()+7)}return out}
+function cardHTML(v){V=v;const st=totalStats();const r=v.resultado;V=null;
+      return `<div class="card vwrap"><button class="vcard" data-open="${v.id}"><span class="t"><b>${esc(v.dados.apartamento?'Apto '+v.dados.apartamento:'Sem apartamento')}${v.exemplo?' · EXEMPLO':''}</b>
+      <small>${esc(v.dados.cliente||'Cliente não informado')} · ${esc(v.dados.empreendimento||'—')}</small>
+      <small>${fmtDate(v.dados.data)} · ${st.done}/${st.total} itens</small></span>
+      ${r?`<span class="pill ${r==='Aprovado'?'ok':'bad'}">${esc(r)}</span>`:'<span class="pill na">Em andamento</span>'}</button>
+      <div class="vacts"><button class="act" data-edit="${v.id}">${ICO_EDIT}Editar</button><button class="act" data-hpdf="${v.id}">${ICO_PDF}PDF</button>${BUILD==='site'?`<button class="act" data-hshare="${v.id}">${ICO_MAIL}Compartilhar</button>`:`<button class="act" data-hmail="${v.id}">${ICO_MAIL}Enviar por e-mail</button>`}<button class="act del" data-hdel="${v.id}">${ICO_DEL}Excluir</button></div>
+      <div class="mailbox" data-mailbox="${v.id}" hidden><label class="f">E-mail de destino<input type="email" id="em-${v.id}" inputmode="email" autocomplete="email" placeholder="nome@exemplo.com" value="${esc(lastEmail())}"></label>
+      <small style="color:var(--muted)">Para mais de um, separe por vírgula. O PDF vai anexado, enviado pelo seu Gmail.</small>
+      <div class="row"><button class="btn primary small" data-sendmail="${v.id}">Enviar PDF</button><button class="btn small" data-hmail="${v.id}">Cancelar</button></div><div class="mailmsg" data-mailmsg="${v.id}"></div></div></div>`}
+function homeListHTML(all){
+  if(!all.length)return '<h2>Vistorias salvas</h2><div class="vlist"><div class="empty">Nenhuma vistoria ainda.</div></div>';
+  const months=[...new Set(all.map(ymOf))].sort().reverse();
+  if(homeFilter.month&&!months.includes(homeFilter.month))homeFilter={month:'',week:''};
+  let list=all;if(homeFilter.month)list=list.filter(v=>ymOf(v)===homeFilter.month);
+  let weeks=[];if(homeFilter.month&&homeFilter.month!=='sem-data'){weeks=weeksOf(homeFilter.month);const w=weeks.find(x=>x.key===homeFilter.week);if(w)list=list.filter(v=>v.dados.data>=w.from&&v.dados.data<=w.to);else homeFilter.week=''}
+  const groups=[...new Set(list.map(ymOf))].sort().reverse();
+  return `<h2>Vistorias salvas</h2>
+    <div class="filters"><div class="chips">${['',...months].map(m=>`<button class="chip" data-fmonth="${m}" aria-pressed="${homeFilter.month===m}">${m?monthLabel(m):'Todos os meses'}</button>`).join('')}</div>
+    ${weeks.length?`<div class="chips">${[{key:'',label:'Todas as semanas'},...weeks].map(w=>`<button class="chip small" data-fweek="${w.key}" aria-pressed="${homeFilter.week===w.key}">${w.label}</button>`).join('')}</div>`:''}</div>
+    ${groups.length?groups.map(g=>{const vs=list.filter(v=>ymOf(v)===g).sort((a,b)=>(b.dados.data||'').localeCompare(a.dados.data||'')||b.atualizado-a.atualizado);
+      return `<section class="mgroup"><div class="mhead"><span>${monthLabel(g)}</span><span class="cnt">${vs.length} ${vs.length===1?'vistoria':'vistorias'}</span></div><div class="vlist">${vs.map(cardHTML).join('')}</div></section>`}).join(''):'<div class="card empty">Nenhuma vistoria nesta semana.</div>'}`}
+
+async function showHome(){
+  if(saveTimer){clearTimeout(saveTimer);if(V)await saveNow()}
+  V=null;$('#backBtn').hidden=true;$('#foot').hidden=true;$('#topTitle').textContent='Vistoria de Entrega';$('#savedLbl').textContent='';
+  const all=(await dbAll('vistorias')).map(normalize).sort((a,b)=>b.atualizado-a.atualizado);
+  const app=$('#app');
+  app.innerHTML=`
+    <button class="btn primary" id="newBtn">+ Nova vistoria</button>
+    ${db?'':'<div class="note">Este navegador não permitiu guardar dados. A vistoria funciona, mas será perdida se a página fechar.</div>'}
+    ${homeListHTML(all)}
+    <div class="note">Tudo fica gravado neste aparelho, mesmo sem internet. ${BUILD==='site'?'Nada sai do aparelho até você compartilhar.':'Nada sai do aparelho até você enviar ao Drive ou por e-mail.'}</div>
+    <section class="card pad"><h2>Backup</h2><small style="color:var(--muted)">Salva todas as vistorias e fotos num arquivo. Use para trocar de celular ou levar para outro endereço do app. Os vídeos não entram no backup.</small>
+      <div class="row"><button class="btn small" id="bkExport">Fazer backup</button><button class="btn small" id="bkImport">Restaurar backup</button></div></section>`;
+  $('#newBtn').onclick=async()=>{V=newVistoria();openSet.clear();openSet.add('dados');openSet.add('ambs');await saveNow();showEditor()};
+  app.onclick=async e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.fmonth!==undefined){homeFilter={month:b.dataset.fmonth,week:''};showHome();return}
+    if(b.dataset.fweek!==undefined){homeFilter.week=b.dataset.fweek;showHome();return}
+    if(b.dataset.open||b.dataset.edit){openVistoria(b.dataset.open||b.dataset.edit);return}
+    if(b.dataset.hmail){const box=app.querySelector(`[data-mailbox="${b.dataset.hmail}"]`);box.hidden=!box.hidden;if(!box.hidden)box.querySelector('input').focus();return}
+    if(b.dataset.hpdf){if(busyHome)return;busyHome=true;const t=b.innerHTML;b.textContent='Gerando…';try{await withVistoria(b.dataset.hpdf,async()=>{const {blob,name}=buildPDF();await deliver(blob,name)})}catch(err){toast('Erro ao gerar o PDF.')}b.innerHTML=t;busyHome=false;return}
+    if(b.dataset.sendmail){sendMail(b.dataset.sendmail,b);return}
+    if(b.dataset.hshare){if(pendingShare&&pendingShare.id===b.dataset.hshare){const ps=pendingShare;pendingShare=null;await shareFiles(ps.files,ps.title);b.innerHTML=ICO_MAIL+'Compartilhar';return}
+      if(busyHome)return;busyHome=true;b.textContent='Gerando…';try{const r=await withVistoria(b.dataset.hshare,async()=>{const {blob,name}=buildPDF();return {files:[new File([blob],name,{type:'application/pdf'})],title:name}});
+        const ok=await shareFiles(r.files,r.title,true);if(ok==='retry'){pendingShare={id:b.dataset.hshare,...r};b.innerHTML=ICO_MAIL+'PDF pronto: toque para compartilhar';busyHome=false;return}}catch(err){toast('Erro ao gerar o PDF.')}b.innerHTML=ICO_MAIL+'Compartilhar';busyHome=false;return}
+    if(b.id==='bkExport'){exportBackup();return}
+    if(b.id==='bkImport'){$('#bkInput').value='';$('#bkInput').click();return}
+    if(b.dataset.hdel){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.innerHTML=ICO_DEL+'Toque de novo para excluir';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.innerHTML=ICO_DEL+'Excluir'}},4000);return}
+      const v=normalize(await dbGet('vistorias',b.dataset.hdel));if(v){const ids=[];for(const a of v.ambientes)for(const k in a.subs)for(const i in a.subs[k].vals){const vv=a.subs[k].vals[i];(vv.fotos||[]).concat(vv.videos||[],umidPhotoIds(vv)).forEach(f=>ids.push(f))}
+        for(const f of ids){await dbDel('fotos',f);photoCache.delete(f);videoCache.delete(f)}await dbDel('vistorias',v.id)}toast('Vistoria excluída');showHome();return}
+  };
+  app.oninput=null;
+}
+async function openVistoria(id){if(!(await loadVistoria(id)))return showHome();openSet.clear();showEditor()}
+async function loadVistoria(id){V=normalize(await dbGet('vistorias',id));if(!V)return false;
+  const ids=[];for(const a of V.ambientes)for(const s of subsOf(a))for(const k in a.subs[s.id].vals)(a.subs[s.id].vals[k].fotos||[]).forEach(f=>ids.push(f));
+  await Promise.all(ids.map(async f=>{if(!photoCache.has(f)){const p=await dbGet('fotos',f);if(p)photoCache.set(f,p)}}));
+  const vids=[];for(const a of V.ambientes)for(const s of subsOf(a))for(const k in a.subs[s.id].vals)(a.subs[s.id].vals[k].videos||[]).forEach(f=>vids.push(f));
+  const uids=[];for(const a of V.ambientes)for(const s of subsOf(a))for(const k in a.subs[s.id].vals)umidPhotoIds(a.subs[s.id].vals[k]).forEach(f=>uids.push(f));
+  await Promise.all(uids.map(async f=>{if(!photoCache.has(f)){const p=await dbGet('fotos',f);if(p)photoCache.set(f,p)}}));
+  await Promise.all(vids.map(async f=>{if(!videoCache.has(f)){const r=await dbGet('fotos',f);if(r&&r.blob)videoCache.set(f,{...r,url:URL.createObjectURL(r.blob)})}}));
+  return true}
+
+/* ============ TELA: VISTORIA ============ */
+function showEditor(){
+  $('#backBtn').hidden=false;$('#foot').hidden=false;
+  $('#topTitle').textContent=V.dados.apartamento?'Apto '+V.dados.apartamento:'Nova vistoria';
+  const app=$('#app');
+  app.innerHTML=`
+    <section class="card acc ${openSet.has('dados')?'open':''}" data-acc="dados">
+      <button class="acc-h"><span class="nm">Dados da vistoria</span><span class="tick" id="tk-dados">${CHECK}</span>${CHEV}</button>
+      <div class="acc-b"><div class="pad">
+        <label class="f">Nome do cliente<input type="text" data-d="cliente" id="d-cliente" value="${esc(V.dados.cliente)}" autocomplete="off"></label>
+        <label class="f">Construtora<input type="text" data-d="construtora" id="d-construtora" value="${esc(V.dados.construtora)}"></label>
+        <label class="f">Empreendimento<input type="text" data-d="empreendimento" id="d-empreendimento" value="${esc(V.dados.empreendimento)}"></label>
+        <label class="f">Arquiteta/Engenheira vistoriadora<input type="text" data-d="vistoriador" id="d-vistoriador" value="${esc(V.dados.vistoriador||'')}"></label>
+        <label class="f">Número RRT/ART<input type="text" data-d="rrt" id="d-rrt" value="${esc(V.dados.rrt||'')}"></label>
+        <div class="grid2">
+          <label class="f">Apartamento<input type="text" data-d="apartamento" id="d-apartamento" value="${esc(V.dados.apartamento)}"></label>
+          <label class="f">Data da vistoria<input type="date" data-d="data" id="d-data" value="${esc(V.dados.data)}"></label>
+        </div>
+      </div></div>
+    </section>
+    <section class="card acc ${openSet.has('ambs')?'open':''}" data-acc="ambs">
+      <button class="acc-h"><span class="nm">Ambientes do apartamento</span><span class="cnt" id="ambCount"></span>${CHEV}</button>
+      <div class="acc-b"><div class="pad">
+        <small style="color:var(--muted)">Marque os ambientes que existem. Cada um abre a sua ficha abaixo.</small>
+        <div class="chips" id="ambChips"></div>
+        <div class="addamb"><input type="text" id="newAmb" placeholder="Outro ambiente (ex.: Lavabo)"><button class="btn small" id="addAmbBtn">Adicionar</button></div>
+      </div></div>
+    </section>
+    <div id="ambList" style="display:flex;flex-direction:column;gap:12px"></div>
+    <section class="card pad" id="resultado"></section>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn danger small" id="delBtn">Excluir vistoria</button>
+    </div>`;
+  renderAmbChips();renderAmbList();renderResultado();refreshStatus();bindEditor();
+}
+function renderAmbChips(){
+  $('#ambChips').innerHTML=V.ambientes.map(a=>`<button class="chip" data-amb-toggle="${a.id}" aria-pressed="${a.ativo}">${a.ativo?'✓ ':''}${esc(a.nome)}</button>`).join('');
+  $('#ambCount').textContent=V.ambientes.filter(a=>a.ativo).length+' marcados';
+}
+function renderAmbList(){
+  const act=V.ambientes.filter(a=>a.ativo);
+  $('#ambList').innerHTML=act.length?act.map(ambHTML).join(''):'<div class="card empty">Marque acima os ambientes para começar.</div>';
+}
+function ambHTML(a){
+  const key='a:'+a.id;
+  return `<section class="card acc amb ${openSet.has(key)?'open':''}" data-acc="${key}" data-amb="${a.id}">
+    <button class="acc-h"><span class="drag" data-drag="${a.id}" title="Arraste para mudar a ordem" aria-label="Arrastar ${esc(a.nome)}"><svg viewBox="0 0 12 20" width="12" height="20" fill="currentColor"><circle cx="3" cy="4" r="1.6"/><circle cx="9" cy="4" r="1.6"/><circle cx="3" cy="10" r="1.6"/><circle cx="9" cy="10" r="1.6"/><circle cx="3" cy="16" r="1.6"/><circle cx="9" cy="16" r="1.6"/></svg></span><span class="nm">${esc(a.nome)}</span><span class="cnt" data-cnt-amb="${a.id}"></span><span class="tick" data-tk-amb="${a.id}">${CHECK}</span>${CHEV}</button>
+    <div class="acc-b">
+      <div class="subtoggles"><small>Itens vistoriados neste ambiente:</small>
+        <div class="chips">${subsOf(a).map(s=>`<button class="chip" data-sub-toggle="${a.id}|${s.id}" aria-pressed="${a.subs[s.id].on}">${a.subs[s.id].on?'✓ ':''}${esc(s.nome)}</button>`).join('')}<button class="chip" data-add-sub="${a.id}" style="border-style:dashed">+ Adicionar</button></div>
+        <div class="addamb" data-addsub-row="${a.id}" hidden><input type="text" id="ns-${a.id}" placeholder="Nome do item (ex.: Esquadrias)"><button class="btn small" data-addsub-ok="${a.id}">Adicionar</button></div>
+      </div>
+      ${subsOf(a).filter(s=>a.subs[s.id].on).map(s=>subHTML(a,s)).join('')}
+    </div></section>`;
+}
+function subHTML(a,s){
+  const key='s:'+a.id+':'+s.id;
+  return `<div class="sub acc ${openSet.has(key)?'open':''}" data-acc="${key}" data-sub="${a.id}|${s.id}">
+    <button class="acc-h"><span class="nm">${s.nome}</span><span class="cnt" data-cnt-sub="${a.id}|${s.id}"></span><span class="tick" data-tk-sub="${a.id}|${s.id}">${CHECK}</span>${CHEV}</button>
+    <div class="acc-b" data-subbody="${a.id}|${s.id}">${subBodyHTML(a,s)}</div></div>`;
+}
+function subBodyHTML(a,s){
+  const vals=a.subs[s.id].vals;const vis=visibleItems(s,vals);
+  let h=vis.map(it=>itemHTML(a,s,it)).join('');
+  if(skippedRest(s,vals))h+=`<div class="skipnote">Demais itens de ${s.nome.toLowerCase()} não se aplicam.</div>`;
+  return h;
+}
+function itemHTML(a,s,it){
+  const val=a.subs[s.id].vals[it.id]||{};const path=`${a.id}|${s.id}|${it.id}`;const fid=path.replace(/\|/g,'-');
+  let ctrl='';
+  if(it.type==='number'){ctrl=`<input type="number" inputmode="numeric" min="0" id="n-${fid}" data-num="${path}" value="${esc(val.v??'')}" style="max-width:160px">`}
+  else if(it.options){ctrl=`<div class="seg">${it.options.map(o=>{const cls=o==='Não se aplica'?'nav':it.type!=='check'?'':o===(it.bad||'Não aprovado')?'badv':'okv';return `<button class="opt ${cls}" data-opt="${path}" data-v="${esc(o)}" aria-pressed="${val.v===o}">${esc(o)}</button>`}).join('')}</div>`;
+    if(it.other&&val.v===it.other)ctrl+=`<input type="text" id="o-${fid}" data-txt="${path}" placeholder="Qual?" value="${esc(val.txt||'')}">`;}
+  if(it.type==='photo')ctrl='';
+  if(it.textField)ctrl+=`<label class="f"><span class="obs-l">${esc(it.textField.label)}${it.textField.required?' (obrigatório)':''}</span><input type="text" id="x-${fid}" data-txt="${path}" value="${esc(val.txt||'')}"></label>`;
+  if(it.umidTest&&val.v==='Não aprovado')ctrl+=umidBtnHTML(path,val);
+  let obs='';
+  if(it.type==='check'&&val.v!=='Não se aplica'){
+    const req=obsRequired(it,val);const lbl=!val.v?(it.obs==='always'?'Observações (obrigatório)':'Observações (obrigatório se não aprovado)'):req?'Observações (obrigatório)':'Observações (opcional)';
+    obs=`<label class="f"><span class="obs-l ${req&&!(val.obs||'').trim()?'req':''}" data-obsl="${path}">${lbl}</span><textarea id="t-${fid}" data-obs="${path}" rows="2">${esc(val.obs||'')}</textarea></label>`;
+  }
+  const fotos=(val.fotos||[]);
+  const full=fotos.length>=MAX_FOTOS;
+  const ph=it.nophoto?'':`<div class="photos">${fotos.map(f=>{const p=photoCache.get(f);return p?`<div class="thumb"><img src="${p.data}" alt="Foto"><button data-delphoto="${path}|${f}">✕</button></div>`:''}).join('')}
+    ${full?`<span class="hint" style="margin:0">Limite de ${MAX_FOTOS} fotos atingido</span>`:`<button class="photo-btn ${it.photo&&!fotos.length?'need':''}" data-cam="${path}">${CAM}Foto</button>
+    <button class="photo-btn" data-gal="${path}">Galeria</button><span class="hint" style="margin:0">${fotos.length}/${MAX_FOTOS}</span>`}</div>`;
+  const vids=val.videos||[];
+  const vh=!it.test?'':`<div class="vids">${vids.map(id=>{const vv=videoCache.get(id);return vv?`<div class="vthumb"><video src="${vv.url}" controls playsinline preload="metadata"></video><div class="row">${V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':'<span class="pill na">Só no aparelho</span>'}<button class="btn small" data-dlvid="${id}">Baixar</button><button class="btn small danger" data-delvid="${path}|${id}">Remover</button></div></div>`:''}).join('')}
+    ${vids.length>=MAX_VIDEOS?`<span class="hint" style="margin:0">Limite de ${MAX_VIDEOS} vídeos atingido</span>`:`${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?`<span class="obs-l req">${(it.videoMin||1)>1?`Grave ${it.videoMin} vídeos do teste (obrigatório)`:'Vídeo do teste obrigatório'}</span>`:''}<div class="row"><button class="photo-btn vid ${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?'need':''}" data-vid="${path}">${VID}Gravar vídeo</button><button class="photo-btn vid" data-vidgal="${path}">Vídeo da galeria</button><span class="hint" style="margin:0">${vids.length}/${MAX_VIDEOS}</span></div>`}</div>`;
+  return `<div class="item" data-item="${path}">
+    <div class="item-h"><span class="q">${it.test?TESTBADGE:''}${esc(it.label)}</span><span class="tick" data-tk-item="${path}">${CHECK}</span></div>
+    ${it.hint?`<div class="hint">${esc(it.hint)}</div>`:''}${ctrl}${obs}${ph}${vh}</div>`;
+}
+function renderResultado(){
+  const p=pendencias();
+  $('#resultado').innerHTML=`<h2>Resultado da vistoria</h2>
+    <div class="pend">${p.length?`<b style="color:var(--bad);font-size:1.05rem">${p.length} ${p.length===1?'item não aprovado':'itens não aprovados'}</b>`:'<span style="color:var(--muted)">Nenhum item marcado como não aprovado até agora.</span>'}</div>
+    <div class="res-seg">${['Aprovado','Não aprovado'].map(o=>`<button class="opt ${o==='Aprovado'?'okv':'badv'}" data-res="${o}" aria-pressed="${V.resultado===o}">${o}</button>`).join('')}</div>
+    <label class="f">Observações gerais (opcional)<textarea id="obsGerais" rows="3">${esc(V.obsGerais||'')}</textarea></label>
+    ${driveBoxHTML()}`;
+}
+
+/* ============ STATUS (verdinhos) ============ */
+function setTick(el,on){if(el)el.classList.toggle('done',!!on)}
+function refreshStatus(){
+  setTick($('#tk-dados'),dadosDone());
+  for(const a of V.ambientes){if(!a.ativo)continue;
+    const as=ambStats(a);const c=document.querySelector(`[data-cnt-amb="${a.id}"]`);if(c)c.textContent=`${as.done}/${as.total}`;
+    setTick(document.querySelector(`[data-tk-amb="${a.id}"]`),as.total>0&&as.done===as.total);
+    for(const s of subsOf(a)){if(!a.subs[s.id].on)continue;const st=subStats(a,s.id);const k=a.id+'|'+s.id;
+      const cc=document.querySelector(`[data-cnt-sub="${k}"]`);if(cc)cc.textContent=`${st.done}/${st.total}`;
+      setTick(document.querySelector(`[data-tk-sub="${k}"]`),st.done===st.total);
+      for(const it of visibleItems(s,a.subs[s.id].vals)){const val=a.subs[s.id].vals[it.id];const p=k+'|'+it.id;
+        setTick(document.querySelector(`[data-tk-item="${p}"]`),itemDone(it,val));
+        const ol=document.querySelector(`[data-obsl="${p}"]`);if(ol)ol.classList.toggle('req',obsRequired(it,val)&&!((val&&val.obs)||'').trim());}}}
+  const t=totalStats();$('#progTxt').textContent=`${t.done} de ${t.total} itens preenchidos`;$('#progBar').style.width=(t.total?Math.round(t.done/t.total*100):0)+'%';
+}
+function getVal(path,create=true){const [aid,sid,iid]=path.split('|');const a=V.ambientes.find(x=>x.id===aid);const vals=a.subs[sid].vals;if(!vals[iid]&&create)vals[iid]={};const S=getSub(a,sid);return {a,s:S,it:S.items.find(i=>i.id===iid),val:vals[iid]}}
+function rerenderSubBody(a,s){const el=document.querySelector(`[data-subbody="${a.id}|${s.id}"]`);if(el)el.innerHTML=subBodyHTML(a,s)}
+
+/* ============ EVENTOS ============ */
+let pendingPhotoPath=null;
+function bindEditor(){
+  const app=$('#app');
+  app.onclick=async e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(e.target.closest('[data-drag]'))return;
+    if(b.classList.contains('acc-h')){const acc=b.parentElement;const k=acc.dataset.acc;acc.classList.toggle('open');acc.classList.contains('open')?openSet.add(k):openSet.delete(k);return}
+    if(b.dataset.ambToggle){const a=V.ambientes.find(x=>x.id===b.dataset.ambToggle);a.ativo=!a.ativo;if(a.ativo)openSet.add('a:'+a.id);renderAmbChips();renderAmbList();renderResultado();refreshStatus();scheduleSave();return}
+    if(b.dataset.subToggle){const [aid,sid]=b.dataset.subToggle.split('|');const a=V.ambientes.find(x=>x.id===aid);a.subs[sid].on=!a.subs[sid].on;
+      const sec=document.querySelector(`[data-amb="${aid}"]`);sec.outerHTML=ambHTML(a);renderResultado();refreshStatus();scheduleSave();return}
+    if(b.dataset.opt){const {a,s,it,val}=getVal(b.dataset.opt);val.v=(val.v===b.dataset.v)?'':b.dataset.v;
+      if(it.skipOn||it.controls)rerenderSubBody(a,s);else{const el=document.querySelector(`[data-item="${b.dataset.opt}"]`);el.outerHTML=itemHTML(a,s,it)}
+      renderResultado();refreshStatus();scheduleSave();return}
+    if(b.dataset.res){V.resultado=V.resultado===b.dataset.res?'':b.dataset.res;renderResultado();scheduleSave();return}
+    if(b.dataset.cam){pendingPhotoPath=b.dataset.cam;$('#camInput').value='';$('#camInput').click();return}
+    if(b.dataset.umid){openSheet(b.dataset.umid);return}
+    if(b.dataset.addSub){const row=document.querySelector(`[data-addsub-row="${b.dataset.addSub}"]`);row.hidden=!row.hidden;if(!row.hidden)row.querySelector('input').focus();return}
+    if(b.dataset.addsubOk){const aid=b.dataset.addsubOk;const inp=$('#ns-'+aid);const n=inp.value.trim();if(!n){inp.focus();return}const a=V.ambientes.find(x=>x.id===aid);
+      const c={id:'c'+uid(),nome:n};(a.custom=a.custom||[]).push(c);a.subs[c.id]={on:true,vals:{}};openSet.add('s:'+a.id+':'+c.id);
+      document.querySelector(`[data-amb="${aid}"]`).outerHTML=ambHTML(a);renderResultado();refreshStatus();scheduleSave();return}
+    if(b.id==='driveBtn'){sendToDrive(b);return}
+    if(b.id==='shareBtn'){if(pendingShare&&pendingShare.id===V.id){const ps=pendingShare;pendingShare=null;await shareFiles(ps.files,ps.title);renderResultado();return}
+      await saveNow();const {blob,name}=buildPDF();const files=[new File([blob],name,{type:'application/pdf'})];
+      allVideos().forEach((x,i)=>{const vv=videoCache.get(x.id);if(vv){const [type,ext]=driveVideoType(vv);files.push(new File([vv.blob],`Video_${i+1}_${x.label.replace(/ › /g,'_').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'_')}.${ext}`,{type}))}});
+      const ok=await shareFiles(files,name,true);if(ok==='retry'){pendingShare={id:V.id,files,title:name};renderResultado()}return}
+    if(b.dataset.gal){pendingPhotoPath=b.dataset.gal;$('#galInput').value='';$('#galInput').click();return}
+    if(b.dataset.vid){pendingPhotoPath=b.dataset.vid;$('#vidInput').value='';$('#vidInput').click();return}
+    if(b.dataset.vidgal){pendingPhotoPath=b.dataset.vidgal;$('#vidGalInput').value='';$('#vidGalInput').click();return}
+    if(b.dataset.dlvid){const vv=videoCache.get(b.dataset.dlvid);if(vv)await deliver(vv.blob,videoName(vv));return}
+    if(b.dataset.delvid){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Toque de novo';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='Remover'}},3000);return}
+      const parts=b.dataset.delvid.split('|');const vid=parts.pop();const path=parts.join('|');const {a,s,it,val}=getVal(path);
+      val.videos=(val.videos||[]).filter(x=>x!==vid);await dbDel('fotos',vid);const vv=videoCache.get(vid);if(vv)URL.revokeObjectURL(vv.url);videoCache.delete(vid);
+      document.querySelector(`[data-item="${path}"]`).outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();return}
+    if(b.dataset.delphoto){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Remover?';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='✕'}},3000);return}
+      const parts=b.dataset.delphoto.split('|');const fid=parts.pop();const path=parts.join('|');const {a,s,it,val}=getVal(path);
+      val.fotos=(val.fotos||[]).filter(x=>x!==fid);await dbDel('fotos',fid);photoCache.delete(fid);
+      document.querySelector(`[data-item="${path}"]`).outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();return}
+    if(b.id==='addAmbBtn'){const inp=$('#newAmb');const n=inp.value.trim();if(!n)return;const a=newAmb(n,true);V.ambientes.push(a);openSet.add('a:'+a.id);inp.value='';renderAmbChips();renderAmbList();refreshStatus();scheduleSave();return}
+    if(b.id==='delBtn'){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Toque de novo para excluir';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='Excluir vistoria'}},4000);return}
+      const ids=[];for(const a of V.ambientes)for(const s of subsOf(a))for(const k in a.subs[s.id].vals){const vv=a.subs[s.id].vals[k];(vv.fotos||[]).concat(vv.videos||[],umidPhotoIds(vv)).forEach(f=>ids.push(f))}
+      for(const f of ids){await dbDel('fotos',f);photoCache.delete(f);videoCache.delete(f)}await dbDel('vistorias',V.id);clearTimeout(saveTimer);saveTimer=null;V=null;toast('Vistoria excluída');showHome();return}
+  };
+  app.oninput=e=>{
+    const t=e.target;
+    if(t.dataset.d){V.dados[t.dataset.d]=t.value;if(t.dataset.d==='vistoriador'){try{localStorage.setItem('vist-vistoriador',t.value)}catch(_){}}if(t.dataset.d==='apartamento')$('#topTitle').textContent=t.value?'Apto '+t.value:'Nova vistoria';refreshStatus();scheduleSave();return}
+    if(t.dataset.obs){getVal(t.dataset.obs).val.obs=t.value;refreshStatus();scheduleSave();return}
+    if(t.dataset.txt){getVal(t.dataset.txt).val.txt=t.value;refreshStatus();scheduleSave();return}
+    if(t.dataset.num){getVal(t.dataset.num).val.v=t.value;refreshStatus();scheduleSave();return}
+    if(t.id==='obsGerais'){V.obsGerais=t.value;scheduleSave();return}
+  };
+  $('#newAmb').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#addAmbBtn').click()}};
+}
+async function handleFiles(files){
+  if(!pendingPhotoPath||!files.length)return;const path=pendingPhotoPath;pendingPhotoPath=null;
+  toast('Processando foto…',1200);
+  const T=photoTarget(path);
+  const livre=MAX_FOTOS-T.arr.length;if(files.length>livre){files=files.slice(0,Math.max(0,livre));toast(`Cada item aceita até ${MAX_FOTOS} fotos. Adicionei só ${files.length}.`)}
+  for(const f of files){try{const p=await resizeImage(f);p.id=uid();await dbPut('fotos',p);photoCache.set(p.id,p);T.arr.push(p.id)}catch(e){toast('Não consegui ler essa imagem.')}}
+  T.rerender();refreshStatus();scheduleSave();
+}
+function resizeImage(file){return new Promise((res,rej)=>{const url=URL.createObjectURL(file);const img=new Image();
+  img.onload=()=>{const MAX=1400;let w=img.naturalWidth,h=img.naturalHeight;const k=Math.min(1,MAX/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);res({data:c.toDataURL('image/jpeg',0.72),w,h})};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej()};img.src=url})}
+$('#camInput').onchange=e=>handleFiles([...e.target.files]);
+$('#vidInput').onchange=e=>handleVideos([...e.target.files]);
+$('#vidGalInput').onchange=e=>handleVideos([...e.target.files]);
+async function handleVideos(files){
+  if(!pendingPhotoPath||!files.length)return;const path=pendingPhotoPath;pendingPhotoPath=null;
+  const {a,s,it,val}=getVal(path);val.videos=val.videos||[];
+  if(val.videos.length>=MAX_VIDEOS){toast(`Cada teste aceita até ${MAX_VIDEOS} vídeos.`);return}
+  const f=files[0];const rec={id:uid(),kind:'video',blob:f,type:f.type||'video/mp4',name:f.name||'video',size:f.size};
+  try{await dbPut('fotos',rec)}catch(e){toast('Não consegui gravar o vídeo. Pode faltar espaço no aparelho.');return}
+  videoCache.set(rec.id,{...rec,url:URL.createObjectURL(f)});val.videos.push(rec.id);
+  const el=document.querySelector(`[data-item="${path}"]`);if(el)el.outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();toast('Vídeo salvo');
+}
+function videoName(vv){const m=(vv.name||'').match(/\.(mp4|webm)$/i);const ext=m?m[1].toLowerCase():(/webm/.test(vv.type)?'webm':'mp4');const d=V?V.dados:{};return `Video_Apto_${(d.apartamento||'').replace(/[^\w-]+/g,'_')}_${vv.id}.${ext}`}
+$('#galInput').onchange=e=>handleFiles([...e.target.files]);
+$('#backBtn').onclick=()=>showHome();
+document.addEventListener('keydown',e=>{const t=e.target;if(e.key==='Enter'&&t.id&&t.id.startsWith('ns-')){e.preventDefault();const b=document.querySelector(`[data-addsub-ok="${t.id.slice(3)}"]`);if(b)b.click()}});
+
+/* ============ TESTE DE UMIDADE (subseção) ============ */
+const THERMO='<svg class="th" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M10 4a2 2 0 0 1 4 0v10.3a4 4 0 1 1-4 0z"/><circle cx="12" cy="17.5" r="1.6" fill="currentColor"/><path d="M12 9v7"/><path d="M17 6h2M17 9h2M17 12h2"/></svg>';
+const ACAB_U=['Pintura','Textura','Revestimento cerâmico','Outro'];
+const TIPO_U=['Formato auréola','Mancha horizontal na base da parede','Mancha vertical (a partir de algum ponto)','Manchas difusas (mofo, bolor)'];
+const newArea=()=>({id:uid(),valor:'',fotos:[]});
+const newPonto=()=>({id:uid(),local:'',acab:'',acabTxt:'',tipo:[],seco:newArea(),molhadas:[newArea()]});
+function pontoDone(p){return !!p.local.trim()&&!!p.acab&&(p.acab!=='Outro'||!!p.acabTxt.trim())&&p.tipo.length>0&&[p.seco,...p.molhadas].every(a=>String(a.valor).trim()&&a.fotos.length)}
+function umidDone(val){const u=val.umid;return !!(u&&u.pontos.length&&u.pontos.every(pontoDone))}
+function umidPhotoIds(val){const u=val&&val.umid;if(!u)return [];const out=[];u.pontos.forEach(p=>[p.seco,...p.molhadas].forEach(a=>(a.fotos||[]).forEach(f=>out.push(f))));return out}
+function umidBtnHTML(path,val){const n=val.umid?val.umid.pontos.length:0;const ok=umidDone(val);
+  return `<button class="umid-btn" data-umid="${path}">${THERMO}<span class="lbl">Teste de umidade<small>${n?`${n} ${n===1?'local registrado':'locais registrados'}${ok?'':' · falta preencher'}`:'Toque para registrar as medições'}</small></span><span class="tick ${ok?'done':''}">${CHECK}</span></button>`}
+let sheetPath=null;
+function photoTarget(path){
+  if(path.startsWith('U|')){const [,aid,sid,iid,pid,kind,mid]=path.split('|');const {val}=getVal([aid,sid,iid].join('|'));const pt=val.umid.pontos.find(p=>p.id===pid);
+    const ar=kind==='seco'?pt.seco:pt.molhadas.find(m=>m.id===mid);ar.fotos=ar.fotos||[];return {arr:ar.fotos,area:ar,rerender:renderSheet}}
+  const {a,s,it,val}=getVal(path);val.fotos=val.fotos||[];return {arr:val.fotos,rerender:()=>{const el=document.querySelector(`[data-item="${path}"]`);if(el)el.outerHTML=itemHTML(a,s,it)}}
+}
+function openSheet(path){sheetPath=path;const {val}=getVal(path);if(!val.umid)val.umid={pontos:[]};if(!val.umid.pontos.length)val.umid.pontos.push(newPonto());scheduleSave();renderSheet();$('#sheet').hidden=false;$('#sheet').scrollTop=0;document.body.style.overflow='hidden'}
+function closeSheet(){const path=sheetPath;sheetPath=null;$('#sheet').hidden=true;document.body.style.overflow='';const {a,s,it}=getVal(path);const el=document.querySelector(`[data-item="${path}"]`);if(el)el.outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave()}
+function areaHTML(pid,ar,kind,label){const pp=`U|${sheetPath}|${pid}|${kind}${kind==='m'?'|'+ar.id:''}`;const full=ar.fotos.length>=MAX_FOTOS;const done=String(ar.valor).trim()&&ar.fotos.length;
+  return `<div class="area ${kind==='seco'?'seca':'molh'}"><div class="area-h"><span>${label}</span>${kind==='m'?`<button class="btn small" data-urm-area="${pid}|${ar.id}">Remover</button>`:''}<span class="tick ${done?'done':''}" style="flex:none">${CHECK}</span></div>
+    <div class="valrow"><input type="text" inputmode="decimal" id="uv-${ar.id}" data-uval="${pid}|${kind}|${ar.id}" value="${esc(ar.valor)}" placeholder="Valor medido"><span class="hint" style="margin:0">Foto obrigatória</span></div>
+    <div class="photos">${ar.fotos.map(f=>{const p=photoCache.get(f);return p?`<div class="thumb"><img src="${p.data}" alt="Foto"><button data-udelphoto="${pp}|${f}">✕</button></div>`:''}).join('')}
+    ${full?'':`<button class="photo-btn ${ar.fotos.length?'':'need'}" data-cam="${pp}">${CAM}Foto</button><button class="photo-btn" data-gal="${pp}">Galeria</button>`}<span class="hint" style="margin:0">${ar.fotos.length}/${MAX_FOTOS}</span></div></div>`}
+function renderSheet(){if(!sheetPath)return;const {a,val}=getVal(sheetPath);const U=val.umid;
+  $('#sheet').innerHTML=`<header class="top"><div class="top-in"><button class="iconbtn" data-uclose="1">‹ Voltar</button><h1>Teste de umidade · ${esc(a.nome)}</h1></div></header>
+  <div class="wrap" style="padding-bottom:40px">
+  <div class="note">Parede › Umidade marcada como não aprovada. Registre cada local com a medição da área seca (referência) e das áreas molhadas.</div>
+  ${U.pontos.map((p,i)=>`<section class="card pad ponto">
+    <div class="ponto-h">${THERMO.replace('class="th"','class="th" style="width:22px;height:22px;color:var(--bad)"')}<b>Local ${i+1}</b>${U.pontos.length>1?`<button class="btn small danger" data-urm-ponto="${p.id}">Remover local</button>`:''}<span class="tick ${pontoDone(p)?'done':''}">${CHECK}</span></div>
+    <label class="f">Identificação do local<input type="text" id="ul-${p.id}" data-ufield="${p.id}|local" value="${esc(p.local)}" placeholder="Ex.: parede da janela, canto esquerdo"></label>
+    <div class="f" style="display:flex;flex-direction:column;gap:6px"><span class="obs-l">Acabamento</span><div class="seg">${ACAB_U.map(o=>`<button class="opt" data-uopt="${p.id}|acab|${esc(o)}" aria-pressed="${p.acab===o}">${esc(o)}</button>`).join('')}</div>
+      ${p.acab==='Outro'?`<input type="text" id="ua-${p.id}" data-ufield="${p.id}|acabTxt" value="${esc(p.acabTxt)}" placeholder="Qual?">`:''}</div>
+    <div style="display:flex;flex-direction:column;gap:6px"><span class="obs-l">Tipologia da mancha (pode marcar mais de uma)</span><div class="seg">${TIPO_U.map(o=>`<button class="opt" data-uopt="${p.id}|tipo|${esc(o)}" aria-pressed="${p.tipo.includes(o)}">${esc(o)}</button>`).join('')}</div></div>
+    ${areaHTML(p.id,p.seco,'seco','Valor de referência · área seca')}
+    ${p.molhadas.map((m,j)=>areaHTML(p.id,m,'m',`Valor de referência · área molhada ${j+1}`)).join('')}
+    <button class="btn" data-uadd-area="${p.id}">+ Adicionar área molhada ${p.molhadas.length+1}</button>
+  </section>`).join('')}
+  <button class="btn" data-uadd-ponto="1">+ Adicionar outro local com umidade</button>
+  <button class="btn primary" data-uclose="1">Concluir e voltar</button></div>`;
+}
+async function delMedia(ids){for(const f of ids){await dbDel('fotos',f);photoCache.delete(f)}}
+$('#sheet').onclick=async e=>{const b=e.target.closest('button');if(!b||!sheetPath)return;const {val}=getVal(sheetPath);const U=val.umid;const P=id=>U.pontos.find(p=>p.id===id);
+  if(b.dataset.uclose){closeSheet();return}
+  if(b.dataset.uopt){const [pid,f,...rest]=b.dataset.uopt.split('|');const o=rest.join('|');const p=P(pid);
+    if(f==='acab')p.acab=p.acab===o?'':o;else p.tipo=p.tipo.includes(o)?p.tipo.filter(x=>x!==o):[...p.tipo,o];renderSheet();scheduleSave();return}
+  if(b.dataset.uaddArea){P(b.dataset.uaddArea).molhadas.push(newArea());renderSheet();scheduleSave();return}
+  if(b.dataset.uaddPonto){U.pontos.push(newPonto());renderSheet();scheduleSave();toast('Novo local adicionado no fim da lista');return}
+  if(b.dataset.urmArea||b.dataset.urmPonto){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Toque de novo';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent=b.dataset.urmPonto?'Remover local':'Remover'}},3000);return}
+    if(b.dataset.urmPonto){const p=P(b.dataset.urmPonto);await delMedia([p.seco,...p.molhadas].flatMap(a=>a.fotos));U.pontos=U.pontos.filter(x=>x!==p)}
+    else{const [pid,mid]=b.dataset.urmArea.split('|');const p=P(pid);if(p.molhadas.length<=1){toast('Mantenha pelo menos uma área molhada.');renderSheet();return}const m=p.molhadas.find(x=>x.id===mid);await delMedia(m.fotos);p.molhadas=p.molhadas.filter(x=>x!==m)}
+    renderSheet();scheduleSave();return}
+  if(b.dataset.cam){pendingPhotoPath=b.dataset.cam;$('#camInput').value='';$('#camInput').click();return}
+  if(b.dataset.gal){pendingPhotoPath=b.dataset.gal;$('#galInput').value='';$('#galInput').click();return}
+  if(b.dataset.udelphoto){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Remover?';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='✕'}},3000);return}
+    const parts=b.dataset.udelphoto.split('|');const fid=parts.pop();const T=photoTarget(parts.join('|'));T.area.fotos=T.area.fotos.filter(x=>x!==fid);await delMedia([fid]);renderSheet();scheduleSave();return}
+};
+$('#sheet').oninput=e=>{const t=e.target;if(!sheetPath)return;const U=getVal(sheetPath).val.umid;
+  if(t.dataset.ufield){const [pid,f]=t.dataset.ufield.split('|');U.pontos.find(p=>p.id===pid)[f]=t.value;scheduleSave();return}
+  if(t.dataset.uval){const [pid,kind,aid]=t.dataset.uval.split('|');const p=U.pontos.find(x=>x.id===pid);const ar=kind==='seco'?p.seco:p.molhadas.find(m=>m.id===aid);ar.valor=t.value;scheduleSave();return}
+};
+
+/* ============ COMPARTILHAR + BACKUP ============ */
+let pendingShare=null;
+async function shareFiles(files,title,firstTry){
+  if(navigator.canShare&&navigator.share&&navigator.canShare({files})){
+    try{await navigator.share({files,title});return 'ok'}catch(e){if(e&&e.name==='AbortError')return 'cancel';if(firstTry&&e&&e.name==='NotAllowedError'){toast('Arquivos prontos. Toque no botão de novo para compartilhar.');return 'retry'}}
+  }
+  for(const f of files)await deliver(f,f.name);
+  if(!(navigator.canShare))toast('Este navegador não compartilha arquivos. Os arquivos foram baixados.');
+  return 'downloaded'}
+async function exportBackup(){try{const vs=await dbAll('vistorias');const fs=(await dbAll('fotos')).filter(f=>f.kind!=='video'&&f.data);
+  const data=JSON.stringify({app:'vistoria-entrega',versao:1,criado:new Date().toISOString(),vistorias:vs,fotos:fs});
+  await deliver(new Blob([data],{type:'application/json'}),`Backup_vistorias_${today()}.json`)}catch(e){toast('Não consegui gerar o backup.')}}
+$('#bkInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());if(j.app!=='vistoria-entrega')throw 0;
+  for(const p of j.fotos||[])await dbPut('fotos',p);for(const v of j.vistorias||[])await dbPut('vistorias',v);toast(`${(j.vistorias||[]).length} vistorias restauradas`);showHome()}catch(err){toast('Arquivo de backup inválido.')}};
+
+/* ============ E-MAIL (Gmail) ============ */
+const ICO_EDIT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+const ICO_PDF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></svg>';
+const ICO_MAIL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6l8.5 7 8.5-7"/></svg>';
+let busyHome=false;
+const ICO_DEL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+function lastEmail(){try{return localStorage.getItem('vist-last-email')||''}catch(e){return ''}}
+async function withVistoria(id,fn){const prev=V;try{if(!(await loadVistoria(id)))throw new Error('não encontrada');return await fn()}finally{V=prev}}
+function connErr(e,nome){const c=e&&e.code;const m={server_not_connected:`O ${nome} não está conectado. Conecte em claude.ai › Configurações › Conectores.`,needs_reauth:`A conexão com o ${nome} expirou. Reconecte em claude.ai › Configurações › Conectores.`,approval_required:`É preciso permitir o acesso ao ${nome} quando o Claude perguntar. Toque em enviar de novo.`,not_in_manifest:`O acesso ao ${nome} foi recusado para este app. Libere no menu de permissões do app.`,selection_required:`Escolha qual conta do ${nome} usar quando o Claude perguntar.`,blocked_by_policy:`O acesso ao ${nome} está bloqueado nesta conta.`,server_unavailable:`O ${nome} não respondeu. Verifique a internet e tente de novo.`,bad_request:'O arquivo é grande demais ou não foi aceito.',tool_error:`O ${nome} recusou o envio. Confira o e-mail digitado.`};return m[c]||`Não consegui falar com o ${nome}. Verifique a internet e tente de novo.`}
+async function sendMail(id,btn){
+  const box=document.querySelector(`[data-mailbox="${id}"]`);const msg=box.querySelector('[data-mailmsg]');const inp=box.querySelector('input');
+  const to=inp.value.split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);
+  if(!to.length||!to.every(x=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x))){msg.textContent='Digite um e-mail válido.';inp.focus();return}
+  const mcp=await getMcp();if(!mcp){msg.textContent='O envio por e-mail só funciona com o app aberto dentro do Claude e com internet.';return}
+  if(navigator.onLine===false){msg.textContent='Sem internet agora. Envie quando tiver sinal.';return}
+  if(busyHome)return;busyHome=true;btn.disabled=true;btn.textContent='Gerando PDF…';msg.textContent='';
+  try{
+    let fileArgs=false;try{fileArgs=!!(await mcp.listTools()).fileArgs}catch(e){}
+    const out=await withVistoria(id,async()=>{const r=buildPDF();return {...r,d:{...V.dados},folder:V.drive&&V.drive.folderUrl,res:V.resultado}});
+    let content;if(fileArgs)content={$file:{data:out.blob,name:out.name,type:'application/pdf'}};else if(out.blob.size<700000)content=await blobToB64(out.blob);else throw Object.assign(new Error(),{code:'too_big_inline'});
+    btn.textContent='Enviando…';
+    const d=out.d;const subject=`Laudo de vistoria de entrega · Apto ${d.apartamento||''} · ${d.empreendimento||''}`.trim();
+    const body=`Olá,\n\nSegue em anexo o laudo de vistoria de entrega do apartamento ${d.apartamento||''}${d.empreendimento?' do empreendimento '+d.empreendimento:''}${d.cliente?', cliente '+d.cliente:''}, realizada em ${fmtDate(d.data)}.${out.res?'\n\nResultado: '+out.res+'.':''}${out.folder?'\n\nVídeos e arquivos da vistoria: '+out.folder:''}\n\nAtenciosamente.`;
+    await mcp.callTool('Gmail','send_message',{to,subject,body,attachments:[{filename:out.name,mimeType:'application/pdf',content}]});
+    try{localStorage.setItem('vist-last-email',inp.value.trim())}catch(e){}
+    msg.textContent=`Enviado para ${to.join(', ')}.`;toast('E-mail enviado');
+  }catch(e){msg.textContent=e&&e.code==='too_big_inline'?'O PDF ficou grande demais para enviar por este aparelho. Use o botão PDF e mande pelo seu e-mail.':connErr(e,'Gmail')}
+  btn.disabled=false;btn.textContent='Enviar PDF';busyHome=false;
+}
+
+/* ============ REORDENAR AMBIENTES ============ */
+let drag=null;
+document.addEventListener('pointerdown',e=>{const h=e.target.closest('[data-drag]');if(!h||!V)return;e.preventDefault();e.stopPropagation();
+  const list=$('#ambList');const card=h.closest('.amb');list.classList.add('sorting');card.classList.add('dragging');drag={card,list,h};try{h.setPointerCapture(e.pointerId)}catch(_){}});
+document.addEventListener('pointermove',e=>{if(!drag)return;e.preventDefault();const {list,card}=drag;
+  const cards=[...list.querySelectorAll(':scope > .amb')].filter(c=>c!==card);let before=null;
+  for(const c of cards){const r=c.getBoundingClientRect();if(e.clientY<r.top+r.height/2){before=c;break}}
+  if(before!==card.nextElementSibling&&!(before===null&&card===list.lastElementChild))list.insertBefore(card,before);
+  if(e.clientY<90)window.scrollBy(0,-14);else if(e.clientY>innerHeight-110)window.scrollBy(0,14)},{passive:false});
+function endDrag(){if(!drag)return;const {list,card}=drag;drag=null;list.classList.remove('sorting');card.classList.remove('dragging');
+  const ids=[...list.querySelectorAll(':scope > .amb')].map(c=>c.dataset.amb);const act=ids.map(id=>V.ambientes.find(a=>a.id===id)).filter(Boolean);
+  V.ambientes=[...act,...V.ambientes.filter(a=>!act.includes(a))];renderAmbChips();scheduleSave();toast('Ordem dos ambientes salva',1400)}
+document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
+
+/* ============ GOOGLE DRIVE ============ */
+const DRIVE='Google Drive', FOLDER='application/vnd.google-apps.folder';
+let mcpNs, driveMsg='', driveBusy=false;
+async function getMcp(){if(!(window.claude&&typeof window.claude.use==='function'))return null;if(mcpNs===undefined)mcpNs=await window.claude.use('mcp');return mcpNs}
+function allVideos(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const it of s.items){const val=sd.vals[it.id];(val&&val.videos||[]).forEach((id,k)=>out.push({id,label:`${a.nome} › ${s.nome} › vídeo ${k+1}`}))}}}return out}
+function driveBoxHTML(){if(BUILD==='site')return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Compartilhar</span></div><small style="color:var(--muted)">Envie o PDF e os v\u00eddeos dos testes por WhatsApp, e-mail, Google Drive ou outro app do celular.</small><button class="btn primary" id="shareBtn">${pendingShare&&pendingShare.id===V.id?'Arquivos prontos: toque para compartilhar':'Compartilhar PDF e v\u00eddeos'}</button></div>`;
+const vids=allVideos();const sent=vids.filter(v=>V.drive&&V.drive.videos&&V.drive.videos[v.id]).length;
+  return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Google Drive</span></div>
+    <small style="color:var(--muted)">${vids.length?`${sent} de ${vids.length} ${vids.length===1?'vídeo enviado':'vídeos enviados'}.`:'Nenhum vídeo nesta vistoria.'} O envio cria a pasta da vistoria dentro de "Vistorias de Entrega" no seu Drive, com os vídeos e o PDF. Os links dos vídeos entram no PDF. Precisa de internet.</small>
+    <button class="btn primary" id="driveBtn" ${driveBusy?'disabled':''}>${driveBusy?'Enviando…':'Enviar vídeos e PDF ao Drive'}</button>
+    ${V.drive&&V.drive.folderUrl?`<a href="${esc(V.drive.folderUrl)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Abrir a pasta desta vistoria no Drive</a>`:''}
+    ${driveMsg?`<div class="note" id="driveSt">${driveMsg}</div>`:''}</div>`}
+function setDriveMsg(m){driveMsg=m;if(V&&$('#resultado'))renderResultado()}
+function driveErr(e){const c=e&&e.code;const m={server_not_connected:'O Google Drive não está conectado. Conecte em claude.ai › Configurações › Conectores.',needs_reauth:'A conexão com o Google Drive expirou. Reconecte em claude.ai › Configurações › Conectores.',approval_required:'É preciso permitir o acesso ao Drive quando o Claude perguntar. Toque em enviar de novo.',not_in_manifest:'O acesso ao Drive foi recusado para este app. Libere no menu de permissões do app.',selection_required:'Escolha qual conta do Google Drive usar quando o Claude perguntar.',blocked_by_policy:'O acesso ao Drive está bloqueado nesta conta.',server_unavailable:'O Drive não respondeu. Verifique a internet e tente de novo.',bad_request:'O arquivo não pôde ser enviado (formato ou tamanho não aceito).',tool_error:'O Drive recusou o arquivo.'};return m[c]||'Não consegui falar com o Drive. Verifique a internet e tente de novo.'}
+const FATAL=['server_not_connected','needs_reauth','approval_required','not_in_manifest','selection_required','blocked_by_policy','not_granted','capability_disabled'];
+function pickFile(p){if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){return null}}if(p&&p.file)p=p.file;if(p&&Array.isArray(p.files))p=p.files[0];return p&&p.id?{id:p.id,url:p.viewUrl||p.webViewLink||null}:null}
+const blobToB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
+async function ensureFolder(mcp){V.drive=V.drive||{};V.drive.videos=V.drive.videos||{};if(V.drive.folderId)return;
+  let root=null;try{root=localStorage.getItem('vist-drive-root')}catch(e){}
+  const findRoot=async()=>{const r=await mcp.callTool(DRIVE,'search_files',{query:"title = 'Vistorias de Entrega' and mimeType = 'application/vnd.google-apps.folder' and owner = 'me'",pageSize:1,excludeContentSnippets:true},{cache:false});const f=pickFile(r.payload);
+    if(f)return f.id;const c=await mcp.callTool(DRIVE,'create_file',{title:'Vistorias de Entrega',contentMimeType:FOLDER});return pickFile(c.payload).id};
+  if(!root)root=await findRoot();
+  const d=V.dados;const title=`Apto ${d.apartamento||'sem número'} - ${d.cliente||'Cliente'} - ${fmtDate(d.data).replace(/\//g,'-')}`;
+  let c;try{c=await mcp.callTool(DRIVE,'create_file',{title,contentMimeType:FOLDER,parentId:root})}catch(e){if(e.code!=='tool_error')throw e;root=await findRoot();c=await mcp.callTool(DRIVE,'create_file',{title,contentMimeType:FOLDER,parentId:root})}
+  try{localStorage.setItem('vist-drive-root',root)}catch(e){}
+  const f=pickFile(c.payload);V.drive.folderId=f.id;V.drive.folderUrl=f.url||`https://drive.google.com/drive/folders/${f.id}`;await saveNow()}
+function driveVideoType(vv){const t=(vv.type||'').toLowerCase();if(t.includes('quicktime'))return ['video/quicktime','mov'];if(t.includes('webm'))return ['video/webm','webm'];return ['video/mp4','mp4']}
+async function uploadFile(mcp,fileArgs,blob,name,type){
+  let content;if(fileArgs)content={$file:{data:blob,name,type}};else if(blob.size<700000)content=await blobToB64(blob);else{const e=new Error('big');e.code='too_big_inline';throw e}
+  const r=await mcp.callTool(DRIVE,'create_file',{title:name,parentId:V.drive.folderId,contentMimeType:type,base64Content:content,disableConversionToGoogleType:true});
+  const f=pickFile(r.payload);if(!f)throw Object.assign(new Error('no id'),{code:'tool_error'});return {id:f.id,url:f.url||`https://drive.google.com/file/d/${f.id}/view`}}
+async function sendToDrive(){
+  if(driveBusy)return;const mcp=await getMcp();
+  if(!mcp){setDriveMsg('O envio ao Drive só funciona com o app aberto dentro do Claude e com internet.');return}
+  if(navigator.onLine===false){setDriveMsg('Sem internet agora. Os vídeos continuam guardados no aparelho; envie quando tiver sinal.');return}
+  driveBusy=true;setDriveMsg('Preparando a pasta no Drive…');const fails=[];
+  try{
+    let fileArgs=false;try{fileArgs=!!(await mcp.listTools()).fileArgs}catch(e){}
+    await ensureFolder(mcp);
+    const pend=allVideos().filter(v=>!V.drive.videos[v.id]);let n=0;
+    for(const v of pend){const vv=videoCache.get(v.id);if(!vv)continue;n++;setDriveMsg(`Enviando vídeo ${n} de ${pend.length}…`);
+      if(vv.size>16*1024*1024){fails.push(`${v.label}: maior que 16 MB, grave um vídeo mais curto`);continue}
+      const [type,ext]=driveVideoType(vv);const d=V.dados;const name=`Video_Apto_${(d.apartamento||'').replace(/[^\w-]+/g,'_')}_${v.label.replace(/ › /g,'_').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_')}.${ext}`;
+      try{V.drive.videos[v.id]=await uploadFile(mcp,fileArgs,vv.blob,name,type);await saveNow()}
+      catch(e){if(FATAL.includes(e.code))throw e;fails.push(`${v.label}: ${e.code==='too_big_inline'?'este aparelho não permite enviar arquivos grandes daqui':driveErr(e)}`)}}
+    setDriveMsg('Enviando o PDF…');
+    try{const {blob,name}=buildPDF();const f=await uploadFile(mcp,fileArgs,blob,name,'application/pdf');V.drive.pdfUrl=f.url}catch(e){if(FATAL.includes(e.code))throw e;fails.push('PDF: '+(e.code==='too_big_inline'?'grande demais para enviar daqui':driveErr(e)))}
+    await saveNow();
+    setDriveMsg(fails.length?`Enviado, com pendências:<br>${fails.map(esc).join('<br>')}`:'Tudo enviado. O PDF na pasta já tem os links dos vídeos.');
+  }catch(e){setDriveMsg(esc(driveErr(e)))}
+  driveBusy=false;renderResultado();
+  const sec=document.querySelector('[data-item]');document.querySelectorAll('.vthumb').length&&showEditorRefreshVideos();
+}
+function showEditorRefreshVideos(){document.querySelectorAll('[data-item]').forEach(el=>{const {a,s,it}=getVal(el.dataset.item,false);if(it&&it.test)el.outerHTML=itemHTML(a,s,it)});refreshStatus()}
+
+/* ============ PDF ============ */
+$('#pdfBtn').onclick=async()=>{
+  if(!window.jspdf){toast('O gerador de PDF não carregou. Abra o app uma vez com internet.');return}
+  const btn=$('#pdfBtn');btn.disabled=true;btn.textContent='Gerando…';
+  try{await saveNow();const {blob,name}=buildPDF();await deliver(blob,name)}catch(e){console.error(e);toast('Erro ao gerar o PDF.')}
+  btn.disabled=false;btn.textContent='Gerar PDF';
+};
+async function deliver(blob,name){
+  if(window.claude&&typeof window.claude.use==='function'){
+    const dl=await window.claude.use('downloads');
+    if(dl){try{await dl.save({filename:name,data:blob});toast('PDF salvo');}catch(e){if(e&&e.code==='declined')toast('Download cancelado');else toast('Não foi possível baixar aqui.')}return}
+  }
+  const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('PDF gerado');
+}
+function buildPDF(){
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,H=297,M=15,CW=W-2*M;let y=M;
+  const C={ink:[23,33,38],muted:[90,104,111],line:[210,217,220],accent:[31,90,107],ok:[28,116,67],bad:[174,42,33],na:[95,104,108],soft:[236,239,240]};
+  const col=c=>doc.setTextColor(...c);
+  const need=h=>{if(y+h>H-18){doc.addPage();y=M}};
+  const text=(t,x,size,style='normal',color=C.ink,maxW=CW)=>{doc.setFont('helvetica',style);doc.setFontSize(size);col(color);const lines=doc.splitTextToSize(String(t),maxW);const lh=size*0.42;need(lines.length*lh);doc.text(lines,x,y+size*0.32);y+=lines.length*lh;return lines.length};
+  const drawPhotos=ids=>{const fotos=(ids||[]).map(f=>photoCache.get(f)).filter(Boolean);if(!fotos.length)return;const gw=(CW-4)/2;let i=0;while(i<fotos.length){const pair=fotos.slice(i,i+2);const hs=pair.map(p=>Math.min(gw*p.h/p.w,75));const rh=Math.max(...hs);need(rh+3);
+    pair.forEach((p,j)=>{const w=Math.min(gw,hs[j]*p.w/p.h);doc.addImage(p.data,'JPEG',M+j*(gw+4),y+1,w,hs[j])});y+=rh+3;i+=2}};
+  const drawUmid=u=>{u.pontos.forEach((p,i)=>{need(14);y+=1;doc.setFillColor(...C.bad);doc.rect(M,y,1.5,6,'F');doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.bad);doc.text(`TESTE DE UMIDADE · LOCAL ${i+1}`,M+4,y+4.5);y+=8;
+    const kv=(k,v)=>{doc.setFont('helvetica','bold');doc.setFontSize(9.5);col(C.muted);need(5);doc.text(k,M+4,y+3);doc.setFont('helvetica','normal');col(C.ink);const l=doc.splitTextToSize(v||'—',CW-50);doc.text(l,M+46,y+3);y+=l.length*4.2+1};
+    kv('Local',p.local);kv('Acabamento',p.acab==='Outro'?p.acabTxt:p.acab);kv('Tipologia da mancha',p.tipo.join('; '));
+    kv('Área seca (referência)',String(p.seco.valor));drawPhotos(p.seco.fotos);
+    p.molhadas.forEach((m,j)=>{kv(`Área molhada ${j+1}`,String(m.valor));drawPhotos(m.fotos)});y+=2})};
+  // Cabeçalho
+  doc.setFillColor(...C.accent);doc.rect(0,0,W,30,'F');doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(255,255,255);
+  doc.text('VISTORIA DE ENTREGA DE APARTAMENTO',M,18);y=40;
+  const d=V.dados;const rows=[['Nome do cliente',d.cliente],['Construtora',d.construtora],['Empreendimento',d.empreendimento],['Apartamento',d.apartamento],['Data da vistoria',fmtDate(d.data)],['Vistoriadora',d.vistoriador],['RRT/ART',d.rrt]];
+  for(const [k,v] of rows){doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.muted);doc.text(k.toUpperCase(),M,y+3.5);doc.setFont('helvetica','normal');doc.setFontSize(11);col(C.ink);
+    const ls=doc.splitTextToSize(v||'—',CW-45);doc.text(ls,M+45,y+3.5);y+=Math.max(7,ls.length*5+2);doc.setDrawColor(...C.line);doc.line(M,y-1.5,W-M,y-1.5)}
+  y+=4;
+  const ambs=V.ambientes.filter(a=>a.ativo);
+  text('Ambientes vistoriados: '+(ambs.map(a=>a.nome).join(', ')||'nenhum'),M,10,'normal',C.muted);y+=4;
+  const statusColor=(v,it)=>!v?C.ink:v==='Não se aplica'?C.na:(!it||it.type!=='check')?C.ink:v===(it.bad||'Não aprovado')?C.bad:C.ok;
+  for(const a of ambs){
+    need(24);y+=2;doc.setFillColor(...C.soft);doc.rect(M,y,CW,10,'F');doc.setFont('helvetica','bold');doc.setFontSize(13);col(C.accent);doc.text(a.nome.toUpperCase(),M+3,y+7);y+=14;
+    for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;
+      need(16);doc.setFont('helvetica','bold');doc.setFontSize(11);col(C.ink);doc.text(s.nome.toUpperCase(),M,y+4);doc.setDrawColor(...C.accent);doc.setLineWidth(0.5);doc.line(M,y+6,M+CW,y+6);doc.setLineWidth(0.2);y+=9;
+      const vis=visibleItems(s,sd.vals);
+      for(const it of vis){const val=sd.vals[it.id]||{};
+        let ans=it.type==='photo'?`${(val.fotos||[]).length} foto(s)`:it.type==='number'?(val.v!==undefined&&val.v!==''?String(val.v):'—'):(val.v||'—');if(it.other&&val.v===it.other&&val.txt)ans=val.txt;
+        need(8);const labelLines=doc.setFont('helvetica','normal').setFontSize(10).splitTextToSize(it.label,CW-52);
+        doc.setFont('helvetica','normal');doc.setFontSize(10);col(C.ink);doc.text(labelLines,M,y+3.5);
+        doc.setFont('helvetica','bold');col(statusColor(val.v,it));const al=doc.splitTextToSize(ans,48);doc.text(al,W-M,y+3.5,{align:'right'});
+        y+=Math.max(labelLines.length,al.length)*4.4+1.5;
+        if(it.textField&&val.txt&&val.txt.trim()){doc.setFont('helvetica','normal');doc.setFontSize(9.5);col(C.ink);const tl=doc.splitTextToSize(`${it.textField.label}: ${val.txt.trim()}`,CW-4);need(tl.length*4);doc.text(tl,M+2,y+3);y+=tl.length*4+1}
+        if(val.obs&&val.obs.trim()){doc.setFont('helvetica','italic');doc.setFontSize(9);col(C.muted);const ol=doc.splitTextToSize('Obs.: '+val.obs.trim(),CW-4);need(ol.length*4);doc.text(ol,M+2,y+3);y+=ol.length*4+1}
+        const fotos=(val.fotos||[]).map(f=>photoCache.get(f)).filter(Boolean);
+        if(fotos.length){const gw=(CW-4)/2;let i=0;while(i<fotos.length){const pair=fotos.slice(i,i+2);const hs=pair.map(p=>Math.min(gw*p.h/p.w,75));const rh=Math.max(...hs);need(rh+3);
+          pair.forEach((p,j)=>{const w=Math.min(gw,hs[j]*p.w/p.h);doc.addImage(p.data,'JPEG',M+j*(gw+4),y+1,w,hs[j])});y+=rh+3;i+=2}}
+        if(it.umidTest&&val.v==='Não aprovado'&&val.umid)drawUmid(val.umid);
+        (val.videos||[]).forEach((vid,k)=>{const L=V.drive&&V.drive.videos&&V.drive.videos[vid];doc.setFont('helvetica','bold');doc.setFontSize(9);need(5);
+          if(L){col(C.accent);doc.textWithLink(`Vídeo ${k+1} do teste: abrir no Google Drive`,M+2,y+3,{url:L.url})}else{col(C.muted);doc.text(BUILD==='site'?`Vídeo ${k+1} do teste: arquivo enviado à parte`:`Vídeo ${k+1} do teste: ainda não enviado ao Drive`,M+2,y+3)}y+=5});
+        doc.setDrawColor(...C.line);doc.line(M,y,W-M,y);y+=2;
+      }
+      if(skippedRest(s,sd.vals)){text('Demais itens não se aplicam.',M,9,'italic',C.muted);}
+      y+=3;
+    }
+  }
+  // Pendências
+  const p=pendencias();need(20);y+=4;doc.setFont('helvetica','bold');doc.setFontSize(13);col(C.ink);doc.text('RESUMO DE PENDÊNCIAS',M,y+5);y+=10;
+  if(!p.length)text('Nenhum item não aprovado.',M,10,'normal',C.muted);
+  p.forEach((x,i)=>{text(`${i+1}. ${x.amb} › ${x.sub} › ${x.item}`,M,10,'bold',C.bad);if(x.obs)text(x.obs,M+5,9.5,'normal',C.ink,CW-5);y+=1.5});
+  if(V.obsGerais&&V.obsGerais.trim()){y+=4;text('OBSERVAÇÕES GERAIS',M,11,'bold');y+=1;text(V.obsGerais.trim(),M,10)}
+  // Resultado
+  need(30);y+=6;const r=V.resultado||'Não informado';const rc=r==='Aprovado'?C.ok:r==='Não aprovado'?C.bad:C.na;
+  doc.setDrawColor(...rc);doc.setLineWidth(1);doc.rect(M,y,CW,20);doc.setLineWidth(0.2);
+  doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.muted);doc.text('RESULTADO DA VISTORIA',M+5,y+7);doc.setFontSize(18);col(rc);doc.text(r.toUpperCase(),M+5,y+16);y+=26;
+  if(V.drive&&V.drive.folderUrl){need(14);doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.ink);doc.text('Vídeos e arquivos desta vistoria no Google Drive:',M,y+4);y+=6;doc.setFont('helvetica','normal');doc.setFontSize(9.5);col(C.accent);doc.textWithLink(V.drive.folderUrl,M,y+4,{url:V.drive.folderUrl});y+=8}
+  // Rodapé
+  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);col(C.muted);
+    doc.text(`Vistoria de entrega · ${d.empreendimento||''} · Apto ${d.apartamento||''} · ${fmtDate(d.data)}`,M,H-8);doc.text(`Página ${i} de ${n}`,W-M,H-8,{align:'right'})}
+  const clean=s=>(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+  const name=`Vistoria_Apto_${clean(d.apartamento)||'sem'}_${clean(d.cliente)||'cliente'}_${(d.data||'').split('-').reverse().join('-')}.pdf`;
+  return {blob:doc.output('blob'),name};
+}
+
+/* ============ INÍCIO ============ */
+async function seedExample(){
+  const v=newVistoria();v.exemplo=true;v.dados={cliente:'Maria Souza (exemplo)',construtora:'Construtora Exemplo',empreendimento:'Residencial Jardim',apartamento:'302',data:today()};
+  const sala=v.ambientes[0];sala.ativo=true;const pv=sala.subs.piso.vals;
+  pv.tipo={v:'Laminado'};pv.conserv={v:'Aprovado',obs:'Sem riscos ou manchas.'};pv.rejunte={v:'Não se aplica'};pv.oco={v:'Não se aplica'};
+  sala.subs.rodape.vals.material={v:'Poliestireno'};sala.subs.rodape.vals.conserv={v:'Não aprovado',obs:'Rodapé descolando atrás da porta.'};
+  v.ambientes[1].ativo=true;await dbPut('vistorias',v);
+}
+(async()=>{await openDB();try{if(!localStorage.getItem('vist-seeded')){const all=await dbAll('vistorias');if(!all.length)await seedExample();localStorage.setItem('vist-seeded','1')}}catch(e){}
+  showHome()})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+</script>
+</body>
+</html>
