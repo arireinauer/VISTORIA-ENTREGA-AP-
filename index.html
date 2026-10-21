@@ -283,7 +283,7 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
 const PIN_HASH='';
-const APP_VERSION='nº 37 · 21/10 às 12h11';
+const APP_VERSION='nº 38 · 21/10 às 12h20';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -367,9 +367,9 @@ const SUBS = [
     {id:'marcadisj', label:'Marca dos disjuntores', type:'text', nophoto:true},
     {id:'circ', label:'Quantidade de circuitos', type:'number', nophoto:true, hintFn:()=>memoV('circuitos')?`Memorial: mínimo de ${memoV('circuitos')} circuitos`:''},
     {id:'separados', label:'Chuveiro e tomadas de 20 A estão em circuitos separados?', type:'check', options:AN, obs:'ifNo'},
-    {id:'tipodisj', label:'Cálculo do disjuntor · ligação do chuveiro', hint:'Disjuntor com uma alavanca = 127 V (monopolar). Com duas alavancas unidas = 220 V (bipolar).', type:'choice', options:['127 V · monopolar','220 V · bipolar'], controls:true, nophoto:true},
-    {id:'bitola', label:'Cálculo do disjuntor · bitola do fio (mais provável)', hint:'Veja a bitola impressa na capa do fio que sai do disjuntor. Se não der para ver, normalmente é 6 mm².', type:'choice', options:['4 mm²','6 mm²','10 mm²','16 mm²'], controls:true, nophoto:true},
-    {id:'chuveiro', label:'Disjuntor do chuveiro instalado (A)', type:'check', breaker:true, options:AN, obs:'ifNo', hintFn:chuveiroCalc},
+    {id:'bitola', label:'Cálculo do disjuntor · 1. bitola do fio do chuveiro', hintFn:bitolaHint, type:'choice', options:['2,5 mm² · até 24 A','4 mm² · até 32 A','6 mm² · até 41 A','10 mm² · até 57 A','16 mm² · até 76 A'], controls:true, nophoto:true},
+    {id:'tipodisj', label:'Cálculo do disjuntor · 2. ligação do chuveiro', hintFn:tensaoHint, type:'choice', options:['127 V · monopolar','220 V · bipolar'], controls:true, nophoto:true},
+    {id:'chuveiro', label:'Cálculo do disjuntor · 3. disjuntor do chuveiro instalado (A)', type:'check', breaker:true, options:AN, obs:'ifNo', hintFn:chuveiroCalc},
     {id:'tampa', label:'A tampa do quadro está presente e corretamente encaixada?', type:'check', options:AN, obs:'ifNo'},
     {id:'ident', label:'Os disjuntores estão corretamente identificados com adesivos?', type:'check', options:AN, obs:'ifNo'},
     {id:'fiacao', label:'A fiação está corretamente alocada na caixa?', type:'check', options:AN, obs:'ifNo'},
@@ -507,19 +507,33 @@ const numBR=x=>parseFloat(String(x).replace(/\./g,'').replace(',','.'));
 const IZ={'2,5 mm²':24,'4 mm²':32,'6 mm²':41,'10 mm²':57,'16 mm²':76,'25 mm²':101};
 const DISJ=[10,16,20,25,32,40,50,63,70,80,100];
 const fmt1=x=>x.toFixed(1).replace('.',',');
+const fmtW=x=>Math.round(x).toLocaleString('pt-BR');
 function calcCtx(vals){const w=numBR(memoV('chuveiro_w'));const td=vals&&vals.tipodisj&&vals.tipodisj.v;
-  const t=td?numBR(td):numBR(memoV('tensao'));const bit=vals&&vals.bitola&&vals.bitola.v;const iz=bit?IZ[bit]:null;
-  if(!(w>0&&t>0))return null;const i=w/t;const rec=DISJ.find(d=>d>=i)||null;const fioMin=rec?Object.keys(IZ).find(k=>IZ[k]>=rec):null;
-  return {w,t,i,rec,fioMin,bit,iz,fromQuadro:!!td}}
-function chuveiroCalc(vals){const c=calcCtx(vals);if(!c)return 'Preencha a potência do chuveiro e a tensão do chuveiro no Memorial descritivo (ou escolha a ligação acima) para o app calcular.';
-  return `Cálculo: ${c.w.toLocaleString('pt-BR')} W ÷ ${c.t} V = ${fmt1(c.i)} A. Disjuntor recomendado: ${c.rec||'—'} A, com fio de no mínimo ${c.fioMin||'—'}.${c.bit?` Fio informado: ${c.bit}, que suporta até ${c.iz} A.`:' Escolha a bitola do fio acima para conferir também o fio.'}`}
-function breakerEval(val,vals){const c=calcCtx(vals),n=numBR(val&&val.num);if(!(n>0)||!c){if(val)val.v='';return null}
-  const okLow=n>=c.i,okHigh=c.iz?n<=c.iz:true;const ok=okLow&&okHigh;val.v=ok?'Aprovado':'Não aprovado';
+  const t=td?numBR(td):numBR(memoV('tensao'));const bitRaw=vals&&vals.bitola&&vals.bitola.v;const bit=bitRaw?bitRaw.split(' · ')[0]:null;const iz=bit?IZ[bit]:null;
+  const dmax=iz?[...DISJ].reverse().find(d=>d<=iz):null;
+  const pmax=(dmax&&t>0)?dmax*t:null;const pprat=pmax?Math.floor(pmax*0.9/100)*100:null;
+  const i=(w>0&&t>0)?w/t:null;const rec=i?DISJ.find(d=>d>=i)||null:null;const fioMin=rec?Object.keys(IZ).find(k=>IZ[k]>=rec):null;
+  return {w:w>0?w:null,t:t>0?t:null,i,rec,fioMin,bit,iz,dmax,pmax,pprat,fromQuadro:!!td}}
+function bitolaHint(vals){const c=calcCtx(vals);let h='Veja a bitola impressa na capa do fio que sai do disjuntor; se não der, normalmente é 6 mm². Corrente máxima de cada fio pela NBR 5410 (cobre, PVC, embutido em eletroduto).';
+  if(c.bit)h+=` Fio escolhido: ${c.bit} aguenta até ${c.iz} A, então o disjuntor pode ser no máximo de ${c.dmax} A.`;return h}
+function tensaoHint(vals){const c=calcCtx(vals);let h='Disjuntor com uma alavanca = 127 V (monopolar). Com duas alavancas unidas = 220 V (bipolar).';
+  if(!c.bit)return h+' Escolha a bitola do fio acima para calcular o chuveiro máximo.';if(!c.t)return h;
+  h+=` Com fio de ${c.bit} em ${c.t} V: disjuntor de até ${c.dmax} A e chuveiro de até cerca de ${fmtW(c.pprat)} W (máximo teórico ${fmtW(c.pmax)} W).`;
+  if(c.w)h+=c.w<=c.pprat?` O chuveiro do memorial (${fmtW(c.w)} W) cabe neste circuito.`:` Atenção: o chuveiro do memorial (${fmtW(c.w)} W) é maior do que este circuito permite.`;
+  return h}
+function chuveiroCalc(vals){const c=calcCtx(vals);if(!c.t)return 'Escolha a ligação do chuveiro (127 V ou 220 V) acima, ou preencha a tensão do chuveiro no Memorial.';
+  let h='';if(c.i)h+=`Chuveiro do memorial: ${fmtW(c.w)} W ÷ ${c.t} V = ${fmt1(c.i)} A, então o disjuntor precisa ser de pelo menos ${fmt1(c.i)} A. `;
+  else h+='Sem a potência do chuveiro no memorial, o app confere só o limite do fio. ';
+  if(c.iz)h+=`Pelo fio de ${c.bit}, o disjuntor pode ser no máximo de ${c.dmax} A.`;else h+='Escolha a bitola do fio acima para conferir o limite do fio.';
+  return h+' Digite abaixo o disjuntor que está no quadro.'}
+function breakerEval(val,vals){const c=calcCtx(vals),n=numBR(val&&val.num);if(!(n>0)||!c.t||(!c.i&&!c.iz)){if(val)val.v='';return null}
+  const okLow=c.i?n>=c.i:true,okHigh=c.iz?n<=c.iz:true;const ok=okLow&&okHigh;val.v=ok?'Aprovado':'Não aprovado';
   let why='';if(!okLow)why=`Disjuntor menor que a corrente do chuveiro (${fmt1(c.i)} A): vai desarmar.`;else if(!okHigh)why=`Disjuntor maior do que o fio de ${c.bit} suporta (${c.iz} A): risco de aquecimento do fio.`;
   let warn='';if(ok&&!c.iz&&c.rec&&n>c.rec)warn='Disjuntor acima do recomendado para o chuveiro do memorial. Confirme a bitola do fio e o projeto elétrico.';
+  if(ok&&c.iz&&c.w&&c.pprat&&c.w>c.pprat)warn=`O disjuntor está certo para o fio, mas o chuveiro do memorial (${fmtW(c.w)} W) é maior do que este circuito permite (até cerca de ${fmtW(c.pprat)} W).`;
   return {ok,n,c,why,warn}}
-function breakerResHTML(val,vals){const r=breakerEval(val,vals);if(!r)return '';const c=r.c;
-  const regra=c.iz?`${fmt1(c.i)} A ≤ ${String(r.n).replace('.',',')} A ≤ ${c.iz} A (fio ${c.bit})`:`${String(r.n).replace('.',',')} A ≥ ${fmt1(c.i)} A calculados`;
+function breakerResHTML(val,vals){const r=breakerEval(val,vals);if(!r)return '';const c=r.c;const ns=String(r.n).replace('.',',');
+  const regra=(c.i&&c.iz)?`${fmt1(c.i)} A ≤ ${ns} A ≤ ${c.iz} A (fio ${c.bit})`:c.iz?`${ns} A ≤ ${c.iz} A (fio ${c.bit})`:`${ns} A ≥ ${fmt1(c.i)} A calculados`;
   return `<span class="pill ${r.ok?'ok':'bad'}">${r.ok?'Aprovado':'Não aprovado'} automático</span> <small style="color:var(--muted)">${r.ok?regra:''}</small>${r.why?`<div class="mline bad" style="margin-top:6px">${r.why}</div>`:''}${r.warn?`<div class="mline bad" style="margin-top:6px">${r.warn}</div>`:''}`}
 const MAX_FOTOS = 10, MAX_VIDEOS = 3;
 const SUB_BY = Object.fromEntries(SUBS.map(s=>[s.id,s]));
