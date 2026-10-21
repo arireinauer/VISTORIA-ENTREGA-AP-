@@ -46,7 +46,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .brand{background:var(--brand-deep);color:#FFF;text-align:center;font-family:var(--f-display);font-weight:700;font-size:.78rem;letter-spacing:.18em;padding-block:5px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .drivetop{display:inline-flex;align-items:center;gap:4px;font:inherit;font-weight:700;font-size:.85rem;padding:6px 9px;border-radius:8px;border:1.5px solid var(--accent-ink);background:transparent;color:var(--accent-ink);cursor:pointer;flex:none}
 .drivetop svg{width:20px;height:20px}
-.drivetop.bad span{background:#B3261E;color:#fff;border-radius:99px;padding:0 6px;font-size:.75rem}
+.drivetop{position:relative}
+.drivetop.bad span{position:absolute;top:-8px;right:-8px;background:#B3261E;color:#fff;border-radius:99px;min-width:20px;height:20px;padding:0 5px;font-size:.72rem;display:grid;place-items:center;border:2px solid var(--accent)}
 .drivetop.ok{background:var(--accent-ink);color:var(--ok)}
 @media (max-width:430px){.saved{display:none}}
 .savebtn{font:inherit;font-weight:700;font-size:.92rem;padding:7px 14px;border-radius:8px;border:0;background:var(--accent-ink);color:var(--accent);cursor:pointer;flex:none}
@@ -164,6 +165,8 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 .dd-btn[aria-expanded=true] svg{transform:rotate(180deg)}
 .dd-panel{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:6px 12px 12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 22px rgba(0,0,0,.12)}
 .dd-panel[hidden]{display:none}
+.dd-x{align-self:flex-end;font:inherit;font-weight:600;font-size:.9rem;color:var(--accent);background:none;border:0;padding:8px 4px;cursor:pointer}
+.dd-done{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:3;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 .dd-row{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);font-size:1rem;cursor:pointer}
 .dd-row input{width:22px;height:22px;accent-color:var(--accent);flex:none}
 .remind{display:flex;gap:10px;align-items:flex-start;background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:12px}
@@ -209,9 +212,11 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 .valrow input{max-width:180px}
 .footph{display:inline-flex;align-items:center;gap:6px;padding:10px 12px;color:var(--accent)}
 .footph svg{width:20px;height:20px}
-.footph.bad,.mediabtn.bad{background:var(--bad);border-color:var(--bad);color:var(--surface)}
-.footph.ok,.mediabtn.ok{background:var(--ok);border-color:var(--ok);color:var(--surface)}
-.footph span{font-weight:700;min-width:1ch}
+.footph{position:relative;display:inline-flex;align-items:center;gap:4px;font:inherit;font-weight:700;padding:9px 12px;border-radius:10px;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);cursor:pointer;flex:none}
+.footph svg{width:30px;height:24px}
+.footph .dot{position:absolute;top:-7px;right:-7px;background:#B3261E;color:#fff;border-radius:99px;min-width:20px;height:20px;padding:0 5px;font-size:.72rem;display:grid;place-items:center;border:2px solid var(--surface)}
+.footph .okm{color:var(--ok);font-size:.9rem}
+.footph.ok{border-color:var(--ok);color:var(--ok)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;z-index:40;max-width:90vw;text-align:center}
 .note{font-size:.85rem;color:var(--muted);background:var(--accent-soft);border-radius:10px;padding:10px 12px}
 .addamb{display:flex;gap:8px}
@@ -248,7 +253,7 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 <script>
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
-const APP_VERSION='21/10 · 12h20 · Aviso dados';
+const APP_VERSION='21/10 · 12h30 · Ícones';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -644,9 +649,10 @@ function showEditor(){
         <div class="dd">
           <button class="dd-btn" id="ddBtn" aria-expanded="false"><span id="ddSum"></span><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6l4 4 4-4"/></svg></button>
           <div class="dd-panel" id="ddPanel" hidden>
+            <button class="dd-x" id="ddClose2">Fechar ✕</button>
             <div id="ambChips"></div>
             <div class="addamb"><input type="text" id="newAmb" placeholder="Outro ambiente (ex.: Lavabo)"><button class="btn small" id="addAmbBtn">Adicionar</button></div>
-            <button class="btn primary small" id="ddClose">Pronto</button>
+            <button class="btn primary dd-done" id="ddClose">Pronto · fechar lista</button>
           </div>
         </div>
       </div></div>
@@ -727,7 +733,7 @@ function renderResultado(){
     <div class="res-seg">${['Aprovado','Não aprovado'].map(o=>`<button class="opt ${o==='Aprovado'?'okv':'badv'}" data-res="${o}" aria-pressed="${V.resultado===o}">${o}</button>`).join('')}</div>
     <label class="f">Observações gerais (opcional)<textarea id="obsGerais" rows="3">${esc(V.obsGerais||'')}</textarea></label>
     <div id="driveRem" style="display:flex;flex-direction:column;gap:10px">${driveBoxHTML()}</div>
-    <button class="btn mediabtn" id="saveAllPhotos">Salvar fotos e vídeos no celular</button>`;
+`;
 }
 
 /* ============ AVISO: DADOS OBRIGATÓRIOS ============ */
@@ -817,7 +823,7 @@ function bindEditor(){
       const parts=b.dataset.delphoto.split('|');const fid=parts.pop();const path=parts.join('|');const {a,s,it,val}=getVal(path);
       val.fotos=(val.fotos||[]).filter(x=>x!==fid);await dbDel('fotos',fid);photoCache.delete(fid);
       document.querySelector(`[data-item="${path}"]`).outerHTML=itemHTML(a,s,it);refreshStatus();scheduleSave();return}
-    if(b.id==='ddBtn'||b.id==='ddClose'){const pn=$('#ddPanel');pn.hidden=b.id==='ddClose'?true:!pn.hidden;$('#ddBtn').setAttribute('aria-expanded',String(!pn.hidden));return}
+    if(b.id==='ddBtn'||b.id==='ddClose'||b.id==='ddClose2'){const pn=$('#ddPanel');pn.hidden=b.id!=='ddBtn'?true:!pn.hidden;if(b.id!=='ddBtn')$('#ddBtn').scrollIntoView({block:'center',behavior:'smooth'});$('#ddBtn').setAttribute('aria-expanded',String(!pn.hidden));return}
     if(b.id==='addAmbBtn'){const inp=$('#newAmb');const n=inp.value.trim();if(!n)return;const a=newAmb(n,true);V.ambientes.push(a);openSet.add('a:'+a.id);inp.value='';renderAmbChips();renderAmbList();refreshStatus();scheduleSave();return}
     if(b.id==='delBtn'){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.textContent='Toque de novo para excluir';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.textContent='Excluir vistoria'}},4000);return}
       const ids=[];for(const a of V.ambientes)for(const s of subsOf(a))for(const k in a.subs[s.id].vals){const vv=a.subs[s.id].vals[k];(vv.fotos||[]).concat(vv.videos||[],umidPhotoIds(vv)).forEach(f=>ids.push(f))}
@@ -855,7 +861,7 @@ function saveCopyOn(){try{const v=localStorage.getItem('vist-savecopy');return v
 function rawDownload(blob,name){try{const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),8000)}catch(e){}}
 function allPhotoList(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const k in sd.vals){const vv=sd.vals[k];(vv.fotos||[]).forEach(f=>out.push({f,label:a.nome+'_'+s.nome}));umidPhotoIds(vv).forEach(f=>out.push({f,label:a.nome+'_Teste_umidade'}))}}}return out}
 function dataURLtoFile(du,name){const [h,b64]=du.split(',');const bin=atob(b64);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new File([u8],name,{type:(h.match(/data:([^;]+)/)||[])[1]||'image/jpeg'})}
-const ICO_MEDIA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M3.5 17l5-5 4 4 2.5-2.5L20.5 18"/></svg>';
+const ICO_MEDIA='<svg viewBox="0 0 30 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="6" width="17" height="13" rx="2"/><circle cx="7" cy="10.5" r="1.5"/><path d="M2.5 17l4.5-4.5 3.5 3.5 2-2 6 5"/><path d="M25 18V6M21 10l4-4 4 4"/></svg>';
 function allMediaList(){const out=allPhotoList().filter(x=>photoCache.get(x.f)).map(x=>({...x,kind:'foto'}));
   for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const k in sd.vals){(sd.vals[k].videos||[]).forEach(f=>{if(videoCache.get(f))out.push({f,label:a.nome+'_'+s.nome,kind:'video'})})}}}return out}
 function unsavedMedia(){const sv=(V&&V.fotosSalvas)||{};return allMediaList().filter(x=>!sv[x.f])}
@@ -866,7 +872,7 @@ function updateSaveBtns(){if(!V)return;const all=allMediaList();const un=unsaved
   const desc=[nf?`${nf} ${nf===1?'foto':'fotos'}`:'',nv?`${nv} ${nv===1?'vídeo':'vídeos'}`:''].filter(Boolean).join(' e ');
   const t=n?`Salvar ${desc} no celular`:(all.length?'Todas as mídias salvas ✓ · salvar de novo':'Nenhuma foto ou vídeo ainda');
   const b1=$('#saveAllPhotos');if(b1&&!b1.dataset.busy){b1.textContent=t;b1.className='btn mediabtn '+(n?'bad':all.length?'ok':'')}
-  const f=$('#footPhotos');if(f){f.hidden=false;if(!f.dataset.busy)f.innerHTML=`${ICO_MEDIA}<span>${n?n:(all.length?'✓':'')}</span>`;f.className='btn footph '+(n?'bad':all.length?'ok':'');f.setAttribute('aria-label',t);f.title=t}}
+  const f=$('#footPhotos');if(f){f.hidden=false;if(!f.dataset.busy)f.innerHTML=`${ICO_MEDIA}${n?`<span class="dot">${n}</span>`:(all.length?'<span class="okm">✓</span>':'')}`;f.className='footph '+(n?'bad':all.length?'ok':'');f.setAttribute('aria-label',t);f.title=t}}
 async function saveAllPhotos(btn){
   if(pendingShare&&pendingShare.id==='fotos-'+V.id){const ps=pendingShare;pendingShare=null;const r=await shareFiles(ps.files,ps.title);if(r!=='cancel')markSaved(ps.ids);return}
   let list=unsavedMedia();if(!list.length)list=allMediaList();
