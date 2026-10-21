@@ -283,7 +283,7 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
 const PIN_HASH='';
-const APP_VERSION='nº 36 · 21/10 às 11h54';
+const APP_VERSION='nº 37 · 21/10 às 12h11';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -367,6 +367,8 @@ const SUBS = [
     {id:'marcadisj', label:'Marca dos disjuntores', type:'text', nophoto:true},
     {id:'circ', label:'Quantidade de circuitos', type:'number', nophoto:true, hintFn:()=>memoV('circuitos')?`Memorial: mínimo de ${memoV('circuitos')} circuitos`:''},
     {id:'separados', label:'Chuveiro e tomadas de 20 A estão em circuitos separados?', type:'check', options:AN, obs:'ifNo'},
+    {id:'tipodisj', label:'Cálculo do disjuntor · ligação do chuveiro', hint:'Disjuntor com uma alavanca = 127 V (monopolar). Com duas alavancas unidas = 220 V (bipolar).', type:'choice', options:['127 V · monopolar','220 V · bipolar'], controls:true, nophoto:true},
+    {id:'bitola', label:'Cálculo do disjuntor · bitola do fio (mais provável)', hint:'Veja a bitola impressa na capa do fio que sai do disjuntor. Se não der para ver, normalmente é 6 mm².', type:'choice', options:['4 mm²','6 mm²','10 mm²','16 mm²'], controls:true, nophoto:true},
     {id:'chuveiro', label:'Disjuntor do chuveiro instalado (A)', type:'check', breaker:true, options:AN, obs:'ifNo', hintFn:chuveiroCalc},
     {id:'tampa', label:'A tampa do quadro está presente e corretamente encaixada?', type:'check', options:AN, obs:'ifNo'},
     {id:'ident', label:'Os disjuntores estão corretamente identificados com adesivos?', type:'check', options:AN, obs:'ifNo'},
@@ -458,7 +460,7 @@ const MEMO=[
   {g:'Teto',items:[['teto_secas','Teto áreas secas'],['teto_banheiro','Teto banheiro'],['teto_molhadas','Teto áreas molhadas (exceto banheiro)']]},
   {g:'Esquadrias · portas',items:[['porta_entrada','Portas de entrada (tipo, material, marca)'],['porta_quartos','Portas quartos'],['porta_sacadas','Portas sacadas'],['porta_cozinha','Porta cozinha',{nsa:true}]]},
   {g:'Esquadrias · janelas',items:[['jan_banheiro','Banheiro'],['jan_quartos','Quartos'],['jan_cozinha','Cozinha']]},
-  {g:'Elétrica',items:[['circuitos','Quantidade mínima de circuitos',{num:true}],['chuveiro_w','Potência máxima do chuveiro (W)',{num:true}],['tensao','Tensão do apartamento',{opts:['127 V','220 V']}],
+  {g:'Elétrica',items:[['circuitos','Quantidade mínima de circuitos',{num:true}],['chuveiro_w','Potência máxima do chuveiro (W)',{num:true}],['tensao','Tensão do chuveiro',{opts:['127 V · disjuntor monopolar','220 V · disjuntor bipolar']}],
     ['marca_tomadas','Marca das tomadas'],['marca_interruptores','Marca dos interruptores'],['marca_disjuntores','Marca dos disjuntores'],['marca_interfone','Marca do interfone']]},
   {g:'Pontos de tomada e interruptor por ambiente',grid:[['sala','Sala'],['cozinha','Cozinha'],['banheiro','Banheiro'],['quartos','Quartos'],['sacadas','Sacadas']],
     items:[['sala','Sala'],['cozinha','Cozinha'],['banheiro','Banheiro'],['quartos','Quartos'],['sacadas','Sacadas']].flatMap(([k,l])=>[['tom_'+k,'Tomadas · '+l,{num:true}],['int_'+k,'Interruptores · '+l,{num:true}]])},
@@ -502,11 +504,23 @@ function divTagHTML(){const dv=memoDiverg().length;return dv?`<b class="mtag bad
 function memoDiverg(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd||!sd.on)continue;for(const it of visibleItems(s,sd.vals)){const c=memoCheck(a,s,it,sd.vals[it.id]);if(c&&!c.ok)out.push({a,s,it,c})}}}return out}
 const memoV=k=>((V&&V.memorial)||{})[k]||'';
 const numBR=x=>parseFloat(String(x).replace(/\./g,'').replace(',','.'));
-function chuveiroCalc(){const w=numBR(memoV('chuveiro_w')),t=numBR(memoV('tensao'));if(!(w>0&&t>0))return 'Preencha a potência do chuveiro e a tensão no Memorial descritivo para o app calcular a corrente.';
-  const i=w/t;return `Pelo memorial: ${w.toLocaleString('pt-BR')} W ÷ ${t} V = ${i.toFixed(1).replace('.',',')} A. Digite o valor do disjuntor do chuveiro que está no quadro: precisa ser de pelo menos ${i.toFixed(1).replace('.',',')} A.`}
-function chuveiroI(){const w=numBR(memoV('chuveiro_w')),t=numBR(memoV('tensao'));return (w>0&&t>0)?w/t:null}
-function breakerEval(val){const i=chuveiroI(),n=numBR(val&&val.num);if(!(n>0)||i===null){if(val)val.v='';return null}val.v=n>=i?'Aprovado':'Não aprovado';return {ok:n>=i,n,i}}
-function breakerResHTML(val){const r=breakerEval(val);if(!r)return '';return `<span class="pill ${r.ok?'ok':'bad'}">${r.ok?'Aprovado':'Não aprovado'} automático</span> <small style="color:var(--muted)">${String(r.n).replace('.',',')} A ${r.ok?'≥':'<'} ${r.i.toFixed(1).replace('.',',')} A calculados</small>`}
+const IZ={'2,5 mm²':24,'4 mm²':32,'6 mm²':41,'10 mm²':57,'16 mm²':76,'25 mm²':101};
+const DISJ=[10,16,20,25,32,40,50,63,70,80,100];
+const fmt1=x=>x.toFixed(1).replace('.',',');
+function calcCtx(vals){const w=numBR(memoV('chuveiro_w'));const td=vals&&vals.tipodisj&&vals.tipodisj.v;
+  const t=td?numBR(td):numBR(memoV('tensao'));const bit=vals&&vals.bitola&&vals.bitola.v;const iz=bit?IZ[bit]:null;
+  if(!(w>0&&t>0))return null;const i=w/t;const rec=DISJ.find(d=>d>=i)||null;const fioMin=rec?Object.keys(IZ).find(k=>IZ[k]>=rec):null;
+  return {w,t,i,rec,fioMin,bit,iz,fromQuadro:!!td}}
+function chuveiroCalc(vals){const c=calcCtx(vals);if(!c)return 'Preencha a potência do chuveiro e a tensão do chuveiro no Memorial descritivo (ou escolha a ligação acima) para o app calcular.';
+  return `Cálculo: ${c.w.toLocaleString('pt-BR')} W ÷ ${c.t} V = ${fmt1(c.i)} A. Disjuntor recomendado: ${c.rec||'—'} A, com fio de no mínimo ${c.fioMin||'—'}.${c.bit?` Fio informado: ${c.bit}, que suporta até ${c.iz} A.`:' Escolha a bitola do fio acima para conferir também o fio.'}`}
+function breakerEval(val,vals){const c=calcCtx(vals),n=numBR(val&&val.num);if(!(n>0)||!c){if(val)val.v='';return null}
+  const okLow=n>=c.i,okHigh=c.iz?n<=c.iz:true;const ok=okLow&&okHigh;val.v=ok?'Aprovado':'Não aprovado';
+  let why='';if(!okLow)why=`Disjuntor menor que a corrente do chuveiro (${fmt1(c.i)} A): vai desarmar.`;else if(!okHigh)why=`Disjuntor maior do que o fio de ${c.bit} suporta (${c.iz} A): risco de aquecimento do fio.`;
+  let warn='';if(ok&&!c.iz&&c.rec&&n>c.rec)warn='Disjuntor acima do recomendado para o chuveiro do memorial. Confirme a bitola do fio e o projeto elétrico.';
+  return {ok,n,c,why,warn}}
+function breakerResHTML(val,vals){const r=breakerEval(val,vals);if(!r)return '';const c=r.c;
+  const regra=c.iz?`${fmt1(c.i)} A ≤ ${String(r.n).replace('.',',')} A ≤ ${c.iz} A (fio ${c.bit})`:`${String(r.n).replace('.',',')} A ≥ ${fmt1(c.i)} A calculados`;
+  return `<span class="pill ${r.ok?'ok':'bad'}">${r.ok?'Aprovado':'Não aprovado'} automático</span> <small style="color:var(--muted)">${r.ok?regra:''}</small>${r.why?`<div class="mline bad" style="margin-top:6px">${r.why}</div>`:''}${r.warn?`<div class="mline bad" style="margin-top:6px">${r.warn}</div>`:''}`}
 const MAX_FOTOS = 10, MAX_VIDEOS = 3;
 const SUB_BY = Object.fromEntries(SUBS.map(s=>[s.id,s]));
 const customSub=c=>({id:c.id,nome:c.nome,custom:true,items:[{id:'aval',label:'Avaliação',type:'check',options:ANN,obs:'ifNo'}]});
@@ -740,7 +754,7 @@ function itemHTML(a,s,it){
   let ctrl='';
   if(it.type==='text'){ctrl=`<input type="text" id="x-${fid}" data-txt="${path}" value="${esc(val.txt||'')}" placeholder="Digite">`}
   else if(it.type==='number'){ctrl=`<input type="number" inputmode="numeric" min="0" id="n-${fid}" data-num="${path}" value="${esc(val.v??'')}" style="max-width:160px">`}
-  else if(it.breaker){ctrl=`<div class="row" style="flex-wrap:nowrap"><input type="text" inputmode="decimal" id="bk-${fid}" data-brk="${path}" value="${esc(val.num??'')}" placeholder="Ex.: 50" style="max-width:130px"><b style="color:var(--muted)">A</b></div><div class="brkres" data-brkres="${path}">${breakerResHTML(val)}</div>`}
+  else if(it.breaker){ctrl=`<div class="row" style="flex-wrap:nowrap"><input type="text" inputmode="decimal" id="bk-${fid}" data-brk="${path}" value="${esc(val.num??'')}" placeholder="Ex.: 50" style="max-width:130px"><b style="color:var(--muted)">A</b></div><div class="brkres" data-brkres="${path}">${breakerResHTML(val,a.subs[s.id].vals)}</div>`}
   else if(it.options){ctrl=`<div class="seg">${it.options.map(o=>{const cls=o==='Não se aplica'?'nav':it.type!=='check'?'':o===(it.bad||'Não aprovado')?'badv':'okv';return `<button class="opt ${cls}" data-opt="${path}" data-v="${esc(o)}" aria-pressed="${val.v===o}">${esc(o)}</button>`}).join('')}</div>`;
     if(it.other&&val.v===it.other)ctrl+=`<input type="text" id="o-${fid}" data-txt="${path}" placeholder="Qual?" value="${esc(val.txt||'')}">`;}
   if(it.type==='photo')ctrl='';
@@ -762,7 +776,7 @@ function itemHTML(a,s,it){
   return `<div class="item" data-item="${path}">
     <div class="item-h"><span class="q">${it.test?TESTBADGE:''}${esc(it.label)}</span><span class="mchk" data-mchk="${path}" hidden></span><span class="tick" data-tk-item="${path}">${CHECK}</span></div>
     <div class="mline" data-mline="${path}" hidden></div>
-    ${(it.hintFn?it.hintFn():it.hint)?`<div class="hint${it.hintFn?' calc':''}">${esc(it.hintFn?it.hintFn():it.hint)}</div>`:''}${ctrl}${obs}${ph}${vh}</div>`;
+    ${(it.hintFn?it.hintFn(a.subs[s.id].vals):it.hint)?`<div class="hint${it.hintFn?' calc':''}">${esc(it.hintFn?it.hintFn(a.subs[s.id].vals):it.hint)}</div>`:''}${ctrl}${obs}${ph}${vh}</div>`;
 }
 function renderResultado(){
   const p=pendencias();
@@ -795,7 +809,7 @@ function memoHTML(){const m=V.memorial||{};return `<small style="color:var(--mut
     const dis=o.nsa&&m[k+'_nsa'];
     return `<label class="f">${l}<input type="text" ${o.num?'inputmode="decimal"':''} id="m-${k}" data-memo="${k}" value="${esc(m[k]||'')}" ${dis?'disabled':''}></label>${o.nsa?`<label class="row" style="gap:8px;flex-wrap:nowrap;font-size:.9rem;color:var(--muted)"><input type="checkbox" data-memonsa="${k}" ${dis?'checked':''} style="width:20px;height:20px">Não se aplica</label>`:''}`}).join('')}</div>`).join('')}
 function memoStats(){const m=V.memorial||{};let d=0,t=0;MEMO.forEach(g=>g.items.forEach(([k,l,o={}])=>{t++;if((m[k]||'').toString().trim()||(o.nsa&&m[k+'_nsa']))d++}));return {d,t}}
-function refreshCalcItems(){document.querySelectorAll('[data-item$="|quadro|chuveiro"],[data-item$="|quadro|circ"]').forEach(el=>{const h=el.querySelector('.hint');const {it,val}=getVal(el.dataset.item,false);if(it&&h)h.textContent=it.hintFn();if(it&&it.breaker){const r=el.querySelector('[data-brkres]');if(r)r.innerHTML=breakerResHTML(val||{})}})}
+function refreshCalcItems(){document.querySelectorAll('[data-item$="|quadro|chuveiro"],[data-item$="|quadro|circ"]').forEach(el=>{const h=el.querySelector('.hint');const {a,s,it,val}=getVal(el.dataset.item,false);const vals=a.subs[s.id].vals;if(it&&h)h.textContent=it.hintFn(vals);if(it&&it.breaker){const r=el.querySelector('[data-brkres]');if(r)r.innerHTML=breakerResHTML(val||{},vals)}})}
 
 /* ============ STATUS (verdinhos) ============ */
 function setTick(el,on){if(el)el.classList.toggle('done',!!on)}
@@ -835,7 +849,8 @@ function bindEditor(){
     if(b.dataset.subToggle){const [aid,sid]=b.dataset.subToggle.split('|');const a=V.ambientes.find(x=>x.id===aid);a.subs[sid].on=!a.subs[sid].on;
       const sec=document.querySelector(`[data-amb="${aid}"]`);sec.outerHTML=ambHTML(a);renderResultado();refreshStatus();scheduleSave();return}
     if(b.dataset.opt){const {a,s,it,val}=getVal(b.dataset.opt);val.v=(val.v===b.dataset.v)?'':b.dataset.v;
-      if(it.skipOn||it.controls)rerenderSubBody(a,s);else{const el=document.querySelector(`[data-item="${b.dataset.opt}"]`);el.outerHTML=itemHTML(a,s,it)}
+      if(it.skipOn||it.controls)rerenderSubBody(a,s);
+      if(s.id==='quadro')refreshCalcItems();else{const el=document.querySelector(`[data-item="${b.dataset.opt}"]`);el.outerHTML=itemHTML(a,s,it)}
       renderResultado();refreshStatus();scheduleSave();return}
     if(b.dataset.res){V.resultado=V.resultado===b.dataset.res?'':b.dataset.res;renderResultado();scheduleSave();return}
     if(b.dataset.cam){pendingPhotoPath=b.dataset.cam;$('#camInput').value='';$('#camInput').click();return}
@@ -874,7 +889,7 @@ function bindEditor(){
     if(t.dataset.d){V.dados[t.dataset.d]=t.value;if(dadosWarn)markDados();if(t.dataset.d==='vistoriador'){try{localStorage.setItem('vist-vistoriador',t.value)}catch(_){}}if(t.dataset.d==='apartamento')$('#topTitle').textContent=t.value?'Apto '+t.value:'Nova vistoria';refreshStatus();scheduleSave();return}
     if(t.dataset.obs){getVal(t.dataset.obs).val.obs=t.value;refreshStatus();scheduleSave();return}
     if(t.dataset.txt){getVal(t.dataset.txt).val.txt=t.value;refreshStatus();scheduleSave();return}
-    if(t.dataset.brk){const {val}=getVal(t.dataset.brk);val.num=t.value;const el=document.querySelector(`[data-brkres="${t.dataset.brk}"]`);if(el)el.innerHTML=breakerResHTML(val);refreshStatus();renderResultado();scheduleSave();return}
+    if(t.dataset.brk){const {a,s,val}=getVal(t.dataset.brk);val.num=t.value;const el=document.querySelector(`[data-brkres="${t.dataset.brk}"]`);if(el)el.innerHTML=breakerResHTML(val,a.subs[s.id].vals);refreshStatus();renderResultado();scheduleSave();return}
     if(t.dataset.num){getVal(t.dataset.num).val.v=t.value;refreshStatus();scheduleSave();return}
     if(t.id==='obsGerais'){V.obsGerais=t.value;scheduleSave();return}
     if(t.dataset.ambCheck){const a=V.ambientes.find(x=>x.id===t.dataset.ambCheck);a.ativo=t.checked;if(a.ativo)openSet.add('a:'+a.id);const act=V.ambientes.filter(x=>x.ativo).map(x=>x.nome);$('#ddSum').textContent=act.length?act.join(', '):'Toque para escolher os ambientes';$('#ambCount').textContent=act.length+' marcados';renderAmbList();renderResultado();refreshStatus();scheduleSave();return}
@@ -1262,13 +1277,15 @@ function buildPDF(){
       need(16);doc.setFont('helvetica','bold');doc.setFontSize(11);col(C.ink);doc.text(s.nome.toUpperCase(),M,y+4);doc.setDrawColor(...C.accent);doc.setLineWidth(0.5);doc.line(M,y+6,M+CW,y+6);doc.setLineWidth(0.2);y+=9;
       const vis=visibleItems(s,sd.vals);
       for(const it of vis){const val=sd.vals[it.id]||{};
+        let bkWhy='';if(it.breaker){const r=breakerEval(val,sd.vals);if(r)bkWhy=((r.why||'')+(r.warn?' '+r.warn:'')).trim()}
         let ans=it.breaker?(val.num?`${String(val.num).replace('.',',')} A · ${val.v||'sem cálculo'}`:'—'):it.type==='text'?(val.txt||'—'):it.type==='photo'?`${(val.fotos||[]).length} foto(s)`:it.type==='number'?(val.v!==undefined&&val.v!==''?String(val.v):'—'):(val.v||'—');if(it.other&&val.v===it.other&&val.txt)ans=val.txt;
         need(8);const labelLines=doc.setFont('helvetica','normal').setFontSize(10).splitTextToSize(it.label,CW-52);
         doc.setFont('helvetica','normal');doc.setFontSize(10);col(C.ink);doc.text(labelLines,M,y+3.5);
         doc.setFont('helvetica','bold');col(statusColor(val.v,it));const al=doc.splitTextToSize(ans,48);doc.text(al,W-M,y+3.5,{align:'right'});
         y+=Math.max(labelLines.length,al.length)*4.4+1.5;
         {const mc=memoCheck(a,s,it,val);if(mc){doc.setFont('helvetica','bold');doc.setFontSize(8.5);col(mc.ok?C.ok:C.bad);const ml=doc.splitTextToSize(`Memorial: ${mc.ok?'confere':'diverge'} (memorial: ${mc.memo} · encontrado: ${mc.found})`,CW-4);need(ml.length*3.8);doc.text(ml,M+2,y+2.5);y+=ml.length*3.8+1}}
-        if(it.hintFn){const hh=it.hintFn();if(hh&&!hh.startsWith('Preencha')){doc.setFont('helvetica','normal');doc.setFontSize(8.5);col(C.muted);const hl=doc.splitTextToSize(hh,CW-4);need(hl.length*3.8);doc.text(hl,M+2,y+2.5);y+=hl.length*3.8+1}}
+        if(bkWhy){doc.setFont('helvetica','bold');doc.setFontSize(8.5);col(C.bad);const wl=doc.splitTextToSize(bkWhy,CW-4);need(wl.length*3.8);doc.text(wl,M+2,y+2.5);y+=wl.length*3.8+1}
+        if(it.hintFn){const hh=it.hintFn(sd.vals);if(hh&&!hh.startsWith('Preencha')){doc.setFont('helvetica','normal');doc.setFontSize(8.5);col(C.muted);const hl=doc.splitTextToSize(hh,CW-4);need(hl.length*3.8);doc.text(hl,M+2,y+2.5);y+=hl.length*3.8+1}}
         if(it.textField&&val.txt&&val.txt.trim()){doc.setFont('helvetica','normal');doc.setFontSize(9.5);col(C.ink);const tl=doc.splitTextToSize(`${it.textField.label}: ${val.txt.trim()}`,CW-4);need(tl.length*4);doc.text(tl,M+2,y+3);y+=tl.length*4+1}
         if(val.obs&&val.obs.trim()){doc.setFont('helvetica','italic');doc.setFontSize(9);col(C.muted);const ol=doc.splitTextToSize('Obs.: '+val.obs.trim(),CW-4);need(ol.length*4);doc.text(ol,M+2,y+3);y+=ol.length*4+1}
         const fotos=(val.fotos||[]).map(f=>photoCache.get(f)).filter(Boolean);
