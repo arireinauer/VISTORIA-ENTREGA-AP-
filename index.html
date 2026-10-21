@@ -283,7 +283,7 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
 const PIN_HASH='';
-const APP_VERSION='nº 38 · 21/10 às 12h20';
+const APP_VERSION='nº 40 · 21/10 às 13h53';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -934,7 +934,7 @@ function dataURLtoFile(du,name){const [h,b64]=du.split(',');const bin=atob(b64);
 const ICO_MEDIA='<svg viewBox="0 0 30 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="6" width="17" height="13" rx="2"/><circle cx="7" cy="10.5" r="1.5"/><path d="M2.5 17l4.5-4.5 3.5 3.5 2-2 6 5"/><path d="M25 18V6M21 10l4-4 4 4"/></svg>';
 function allMediaList(){const out=allPhotoList().filter(x=>photoCache.get(x.f)).map(x=>({...x,kind:'foto'}));
   for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const k in sd.vals){(sd.vals[k].videos||[]).forEach(f=>{if(videoCache.get(f))out.push({f,label:a.nome+'_'+s.nome,kind:'video'})})}}}return out}
-function unsavedMedia(){const sv=(V&&V.fotosSalvas)||{};return allMediaList().filter(x=>!sv[x.f])}
+function unsavedMedia(){const sv=(V&&V.fotosSalvas)||{};const dv=(V&&V.drive&&V.drive.videos)||{};return allMediaList().filter(x=>!sv[x.f]&&!(x.kind==='video'&&dv[x.f]))}
 const ICO_CLOUD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.3 1.6A3.8 3.8 0 0 1 17.5 18"/><path d="M12 12v8M9 15l3-3 3 3"/></svg>';
 function updateDriveTop(){const rm=$('#driveRem');if(rm&&V)rm.innerHTML=driveBoxHTML();const b=$('#driveTop');if(!b||!V)return;const all=allVideos().length,n=pendingVideos();b.className='drivetop '+(driveBusy?'busy':n?'bad':all?'ok':'');b.innerHTML=ICO_CLOUD+(driveBusy?'<span>…</span>':n?`<span>${n}</span>`:all?'<span>✓</span>':'');b.title=n?`${n} ${n===1?'vídeo para enviar':'vídeos para enviar'} ao Drive`:all?'Vídeos no Drive':'Enviar vídeos ao Drive'}
 function updateSaveBtns(){if(!V)return;const all=allMediaList();const un=unsavedMedia();const n=un.length;
@@ -1142,7 +1142,7 @@ async function gSyncVideos(progress=()=>{}){const fails=[];if(!allVideos().lengt
   const pend=allVideos().filter(v=>!V.drive.videos[v.id]);let n=0;
   for(const v of pend){const vv=videoCache.get(v.id);if(!vv)continue;n++;progress(`Enviando vídeo ${n} de ${pend.length} ao Drive…`);
     const [type,ext]=driveVideoType(vv);const name=`Video_Apto_${slug(V.dados.apartamento)}_${slug(v.label.replace(/ › /g,'_'))}.${ext}`;
-    try{const f=await gUpload(vv.blob,name,type,V.drive.folderId);await gShareAnyone(f.id);V.drive.videos[v.id]={id:f.id,url:f.webViewLink||`https://drive.google.com/file/d/${f.id}/view`};await saveNow()}
+    try{const f=await gUpload(vv.blob,name,type,V.drive.folderId);V.drive.videos[v.id]={id:f.id,url:f.webViewLink||`https://drive.google.com/file/d/${f.id}/view`};await saveNow();updateDriveTop();try{await gShareAnyone(f.id)}catch(e){}}
     catch(e){if(e.code==='need_login')throw e;fails.push(`${v.label}: ${e.message||'erro no envio'}`)}}
   return {fails}}
 function gDriveBoxHTML(){const vids=allVideos();const sent=vids.filter(v=>V.drive&&V.drive.videos&&V.drive.videos[v.id]).length;const logged=!!cachedTok();
@@ -1159,14 +1159,14 @@ function gSendToDrive(){if(driveBusy)return;if(navigator.onLine===false){setDriv
       const {blob,name}=buildPDF();const f=await gUpload(blob,name,'application/pdf',V.drive.folderId);await gShareAnyone(f.id);V.drive.pdfUrl=f.webViewLink;await saveNow();
       setDriveMsg(fails.length?`Enviado, com pendências:<br>${fails.map(esc).join('<br>')}`:'Tudo enviado. O PDF na pasta já tem os links dos vídeos, abertos para quem receber.')}
     catch(e){setDriveMsg(gErr(e))}
-    driveBusy=false;renderResultado();showEditorRefreshVideos()})}
+    driveBusy=false;renderResultado();showEditorRefreshVideos();updateDriveTop();updateSaveBtns()})}
 if(BUILD==='site'&&GCLIENT_ID){window.addEventListener('load',initGIS);window.addEventListener('online',initGIS)}
 
 /* ============ GOOGLE DRIVE ============ */
 const DRIVE='Google Drive', FOLDER='application/vnd.google-apps.folder';
 let mcpNs, driveMsg='', driveBusy=false;
 async function getMcp(){if(!(window.claude&&typeof window.claude.use==='function'))return null;if(mcpNs===undefined)mcpNs=await window.claude.use('mcp');return mcpNs}
-function allVideos(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const it of s.items){const val=sd.vals[it.id];(val&&val.videos||[]).forEach((id,k)=>out.push({id,label:`${a.nome} › ${s.nome} › vídeo ${k+1}`}))}}}return out}
+function allVideos(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const it of s.items){const val=sd.vals[it.id];(val&&val.videos||[]).forEach((id,k)=>{const inDrive=V.drive&&V.drive.videos&&V.drive.videos[id];if(videoCache.has(id)||inDrive)out.push({id,label:`${a.nome} › ${s.nome} › vídeo ${k+1}`})})}}}return out}
 function driveReminderHTML(){if(!(BUILD==='claude'||GCLIENT_ID))return '';const all=allVideos().length,n=pendingVideos();
   let h='';if(n)h+=`<div class="remind">${ICO_CLOUD}<span>Você tem <b>${n} ${n===1?'vídeo que ainda não está':'vídeos que ainda não estão'}</b> no Google Drive. Toque na nuvem lá em cima para enviar.</span></div>`;
   if(driveMsg)h+=`<div class="note" id="driveSt">${driveMsg}</div>`;
@@ -1307,9 +1307,9 @@ function buildPDF(){
           pair.forEach((p,j)=>{const w=Math.min(gw,hs[j]*p.w/p.h);doc.addImage(p.data,'JPEG',M+j*(gw+4),y+1,w,hs[j])});y+=rh+3;i+=2}}
         if(it.umidTest&&val.v==='Não aprovado'&&val.umid)drawUmid(val.umid);
         const mlinks=(val.vlink||'').split(/\s+/).filter(u=>/^https?:\/\//i.test(u));
-        mlinks.forEach((u,k)=>{doc.setFont('helvetica','bold');doc.setFontSize(9);need(10);col(C.accent);doc.textWithLink(`${mlinks.length>1?'Vídeo '+(k+1)+' do teste':'Vídeo do teste'}: abrir no Google Drive`,M+2,y+3,{url:u});y+=4.5;doc.setFont('helvetica','normal');doc.setFontSize(8.5);const ul=doc.splitTextToSize(u,CW-4);doc.text(ul,M+2,y+3);doc.link(M+2,y,CW-4,ul.length*4,{url:u});y+=ul.length*4+1});
+        mlinks.forEach((u,k)=>{need(9);const lbl=(mlinks.length>1?`VÍDEO ${k+1}: `:'')+'CLIQUE PARA ACESSAR O VÍDEO';doc.setFont('helvetica','bold');doc.setFontSize(9);const tw=doc.getTextWidth(lbl)+10;doc.setFillColor(...C.accent);doc.roundedRect(M+2,y,tw,7,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.text(lbl,M+7,y+4.8);doc.link(M+2,y,tw,7,{url:u});y+=9});
         if(!mlinks.length)(val.videos||[]).forEach((vid,k)=>{const L=V.drive&&V.drive.videos&&V.drive.videos[vid];doc.setFont('helvetica','bold');doc.setFontSize(9);need(5);
-          if(L){col(C.accent);doc.textWithLink(`Vídeo ${k+1} do teste: abrir no Google Drive`,M+2,y+3,{url:L.url});y+=4.5;need(5);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.textWithLink(L.url,M+2,y+3,{url:L.url})}else{col(C.muted);doc.text(BUILD==='site'&&!GCLIENT_ID?`Vídeo ${k+1} do teste: arquivo enviado à parte`:`Vídeo ${k+1} do teste: ainda não enviado ao Drive`,M+2,y+3)}y+=5});
+          if(L){need(9);const lbl=(val.videos.length>1?`VÍDEO ${k+1}: `:'')+'CLIQUE PARA ACESSAR O VÍDEO';doc.setFont('helvetica','bold');doc.setFontSize(9);const tw=doc.getTextWidth(lbl)+10;doc.setFillColor(...C.accent);doc.roundedRect(M+2,y,tw,7,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.text(lbl,M+7,y+4.8);doc.link(M+2,y,tw,7,{url:L.url});y+=4}else{col(C.muted);doc.text(BUILD==='site'&&!GCLIENT_ID?`Vídeo ${k+1} do teste: arquivo enviado à parte`:`Vídeo ${k+1} do teste: ainda não enviado ao Drive`,M+2,y+3)}y+=5});
         doc.setDrawColor(...C.line);doc.line(M,y,W-M,y);y+=2;
       }
       if(skippedRest(s,sd.vals)){text('Demais itens não se aplicam.',M,9,'italic',C.muted);}
@@ -1327,7 +1327,7 @@ function buildPDF(){
   doc.setDrawColor(...rc);doc.setLineWidth(1);doc.rect(M,y,CW,20);doc.setLineWidth(0.2);
   doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.muted);doc.text('RESULTADO DA VISTORIA',M+5,y+7);doc.setFontSize(18);col(rc);doc.text(r.toUpperCase(),M+5,y+16);y+=26;
   const folderLink=(V.pastaLink&&/^https?:\/\//i.test(V.pastaLink))?V.pastaLink:(V.drive&&V.drive.folderUrl);
-  if(folderLink){need(14);doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.ink);doc.text('Vídeos e arquivos desta vistoria no Google Drive:',M,y+4);y+=6;doc.setFont('helvetica','normal');doc.setFontSize(9.5);col(C.accent);const fl=doc.splitTextToSize(folderLink,CW);doc.text(fl,M,y+4);doc.link(M,y,CW,fl.length*4.5,{url:folderLink});y+=fl.length*4.5+4}
+  if(folderLink){need(14);doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.ink);doc.text('Vídeos e arquivos desta vistoria no Google Drive:',M,y+4);y+=7;const lbl='CLIQUE PARA ACESSAR A PASTA DA VISTORIA';doc.setFontSize(9.5);const tw=doc.getTextWidth(lbl)+12;doc.setFillColor(...C.accent);doc.roundedRect(M,y,tw,8,1.5,1.5,'F');doc.setTextColor(255,255,255);doc.text(lbl,M+6,y+5.4);doc.link(M,y,tw,8,{url:folderLink});y+=12}
   // Rodapé
   const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);col(C.muted);
     doc.text(`Titá Soluções de Engenharia · ${d.empreendimento||''} · Apto ${d.apartamento||''} · ${fmtDate(d.data)}`,M,H-8);doc.text(`Página ${i} de ${n}`,W-M,H-8,{align:'right'})}
