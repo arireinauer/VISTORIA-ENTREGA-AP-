@@ -166,6 +166,18 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 .dd-panel[hidden]{display:none}
 .dd-row{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);font-size:1rem;cursor:pointer}
 .dd-row input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.remind{display:flex;gap:10px;align-items:flex-start;background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:12px}
+.remind svg{width:22px;height:22px;flex:none}
+.remind span{color:var(--ink)}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(20,12,6,.55);display:flex;align-items:center;justify-content:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px}
+.modal[hidden]{display:none}
+.modal-card{background:var(--surface);color:var(--ink);border-radius:14px;padding:20px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 50px rgba(0,0,0,.3);border-top:5px solid var(--bad)}
+.modal-card h3{margin:0;font-family:var(--f-display);font-size:1.25rem;color:var(--bad)}
+.modal-card p{margin:0}.modal-card ul{margin:0;padding-left:20px;color:var(--bad);font-weight:600}
+label.f.missing{color:var(--bad)}
+label.f.missing{position:relative}
+label.f.missing::before{content:"*";position:absolute;left:-11px;top:-2px;color:var(--bad);font-weight:700;font-size:1.1rem}
+label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 .verbox{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;color:var(--muted)}
 .skipnote{font-size:.88rem;color:var(--muted);padding:10px 0}
 /* resultado */
@@ -224,6 +236,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
   <button class="btn primary" id="pdfBtn">Gerar PDF</button>
 </div></div>
 <div class="sheet" id="sheet" hidden></div>
+<div class="modal" id="modal" hidden></div>
 <div class="toast" id="toast" hidden></div>
 
 <input type="file" id="camInput" accept="image/*" capture="environment" hidden>
@@ -235,7 +248,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 <script>
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
-const APP_VERSION='21/10 · 12h00 · Atualizar';
+const APP_VERSION='21/10 · 12h20 · Aviso dados';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -558,7 +571,7 @@ function homeListHTML(all){
 
 async function showHome(){
   if(saveTimer){clearTimeout(saveTimer);if(V)await saveNow()}
-  V=null;$('#backBtn').hidden=true;$('#saveBtn').hidden=true;$('#driveTop').hidden=true;$('#foot').hidden=true;$('#topTitle').textContent='Vistoria de Entrega';$('#savedLbl').textContent='';
+  V=null;dadosWarn=false;$('#backBtn').hidden=true;$('#saveBtn').hidden=true;$('#driveTop').hidden=true;$('#foot').hidden=true;$('#topTitle').textContent='Vistoria de Entrega';$('#savedLbl').textContent='';
   const all=(await dbAll('vistorias')).map(normalize).sort((a,b)=>b.atualizado-a.atualizado);
   const app=$('#app');
   app.innerHTML=`
@@ -643,7 +656,7 @@ function showEditor(){
     <div class="row" style="justify-content:space-between">
       <button class="btn danger small" id="delBtn">Excluir vistoria</button>
     </div>`;
-  renderAmbChips();renderAmbList();renderResultado();refreshStatus();bindEditor();
+  renderAmbChips();renderAmbList();renderResultado();refreshStatus();bindEditor();markDados();
 }
 function renderAmbChips(){
   $('#ambChips').innerHTML=V.ambientes.map(a=>`<label class="dd-row"><input type="checkbox" data-amb-check="${a.id}" ${a.ativo?'checked':''}><span>${esc(a.nome)}</span></label>`).join('');
@@ -713,9 +726,21 @@ function renderResultado(){
       <span id="divTag">${divTagHTML()}</span></div>
     <div class="res-seg">${['Aprovado','Não aprovado'].map(o=>`<button class="opt ${o==='Aprovado'?'okv':'badv'}" data-res="${o}" aria-pressed="${V.resultado===o}">${o}</button>`).join('')}</div>
     <label class="f">Observações gerais (opcional)<textarea id="obsGerais" rows="3">${esc(V.obsGerais||'')}</textarea></label>
-    ${driveBoxHTML()}
+    <div id="driveRem" style="display:flex;flex-direction:column;gap:10px">${driveBoxHTML()}</div>
     <button class="btn mediabtn" id="saveAllPhotos">Salvar fotos e vídeos no celular</button>`;
 }
+
+/* ============ AVISO: DADOS OBRIGATÓRIOS ============ */
+const DADOS_REQ=[['cliente','Nome do cliente'],['construtora','Construtora'],['empreendimento','Empreendimento'],['vistoriador','Arquiteta/Engenheira vistoriadora'],['rrt','Número RRT/ART'],['apartamento','Apartamento'],['data','Data da vistoria']];
+let dadosWarn=false;
+function markDados(){if(!V)return;DADOS_REQ.forEach(([k])=>{const inp=document.querySelector(`[data-d="${k}"]`);const lb=inp&&inp.closest('label');if(lb)lb.classList.toggle('missing',dadosWarn&&!(V.dados[k]||'').trim())})}
+function askDados(){dadosWarn=true;const falta=DADOS_REQ.filter(([k])=>!(V.dados[k]||'').trim()).map(([,l])=>l);
+  openSet.add('dados');const sec=document.querySelector('[data-acc="dados"]');if(sec)sec.classList.add('open');markDados();
+  showModal(`<h3>Preencha os dados iniciais primeiro</h3><p>Antes de enviar ao Google Drive, complete os dados da vistoria. Eles dão o nome da pasta do cliente.</p><p>Falta preencher:</p><ul>${falta.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>`,
+    [{label:'Preencher agora',primary:true,fn:()=>{const k=DADOS_REQ.find(([k])=>!(V.dados[k]||'').trim());const inp=k&&document.querySelector(`[data-d="${k[0]}"]`);if(inp){inp.scrollIntoView({block:'center',behavior:'smooth'});setTimeout(()=>inp.focus(),350)}}},{label:'Fechar'}])}
+function showModal(html,actions){const m=$('#modal');m.innerHTML=`<div class="modal-card" role="dialog" aria-modal="true">${html}<div class="row" style="justify-content:flex-end">${actions.map((a,i)=>`<button class="btn ${a.primary?'primary':''}" data-mact="${i}">${esc(a.label)}</button>`).join('')}</div></div>`;m.hidden=false;
+  m.onclick=e=>{const b=e.target.closest('[data-mact]');if(b){m.hidden=true;const a=actions[+b.dataset.mact];if(a.fn)a.fn();return}if(e.target===m)m.hidden=true};const pb=m.querySelector('.btn.primary')||m.querySelector('.btn');if(pb)pb.focus()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('#modal');if(m&&!m.hidden)m.hidden=true}});
 
 /* ============ MEMORIAL ============ */
 const ICO_MEMO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>';
@@ -800,7 +825,7 @@ function bindEditor(){
   };
   app.oninput=e=>{
     const t=e.target;
-    if(t.dataset.d){V.dados[t.dataset.d]=t.value;if(t.dataset.d==='vistoriador'){try{localStorage.setItem('vist-vistoriador',t.value)}catch(_){}}if(t.dataset.d==='apartamento')$('#topTitle').textContent=t.value?'Apto '+t.value:'Nova vistoria';refreshStatus();scheduleSave();return}
+    if(t.dataset.d){V.dados[t.dataset.d]=t.value;if(dadosWarn)markDados();if(t.dataset.d==='vistoriador'){try{localStorage.setItem('vist-vistoriador',t.value)}catch(_){}}if(t.dataset.d==='apartamento')$('#topTitle').textContent=t.value?'Apto '+t.value:'Nova vistoria';refreshStatus();scheduleSave();return}
     if(t.dataset.obs){getVal(t.dataset.obs).val.obs=t.value;refreshStatus();scheduleSave();return}
     if(t.dataset.txt){getVal(t.dataset.txt).val.txt=t.value;refreshStatus();scheduleSave();return}
     if(t.dataset.num){getVal(t.dataset.num).val.v=t.value;refreshStatus();scheduleSave();return}
@@ -835,7 +860,7 @@ function allMediaList(){const out=allPhotoList().filter(x=>photoCache.get(x.f)).
   for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const k in sd.vals){(sd.vals[k].videos||[]).forEach(f=>{if(videoCache.get(f))out.push({f,label:a.nome+'_'+s.nome,kind:'video'})})}}}return out}
 function unsavedMedia(){const sv=(V&&V.fotosSalvas)||{};return allMediaList().filter(x=>!sv[x.f])}
 const ICO_CLOUD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.3 1.6A3.8 3.8 0 0 1 17.5 18"/><path d="M12 12v8M9 15l3-3 3 3"/></svg>';
-function updateDriveTop(){const b=$('#driveTop');if(!b||!V)return;const all=allVideos().length,n=pendingVideos();b.className='drivetop '+(driveBusy?'busy':n?'bad':all?'ok':'');b.innerHTML=ICO_CLOUD+(driveBusy?'<span>…</span>':n?`<span>${n}</span>`:all?'<span>✓</span>':'');b.title=n?`${n} ${n===1?'vídeo para enviar':'vídeos para enviar'} ao Drive`:all?'Vídeos no Drive':'Enviar vídeos ao Drive'}
+function updateDriveTop(){const rm=$('#driveRem');if(rm&&V)rm.innerHTML=driveBoxHTML();const b=$('#driveTop');if(!b||!V)return;const all=allVideos().length,n=pendingVideos();b.className='drivetop '+(driveBusy?'busy':n?'bad':all?'ok':'');b.innerHTML=ICO_CLOUD+(driveBusy?'<span>…</span>':n?`<span>${n}</span>`:all?'<span>✓</span>':'');b.title=n?`${n} ${n===1?'vídeo para enviar':'vídeos para enviar'} ao Drive`:all?'Vídeos no Drive':'Enviar vídeos ao Drive'}
 function updateSaveBtns(){if(!V)return;const all=allMediaList();const un=unsavedMedia();const n=un.length;
   const nf=un.filter(x=>x.kind==='foto').length,nv=n-nf;
   const desc=[nf?`${nf} ${nf===1?'foto':'fotos'}`:'',nv?`${nv} ${nv===1?'vídeo':'vídeos'}`:''].filter(Boolean).join(' e ');
@@ -875,7 +900,7 @@ async function handleVideos(files){
 function videoName(vv){const m=(vv.name||'').match(/\.(mp4|webm)$/i);const ext=m?m[1].toLowerCase():(/webm/.test(vv.type)?'webm':'mp4');const d=V?V.dados:{};return `Video_Apto_${(d.apartamento||'').replace(/[^\w-]+/g,'_')}_${vv.id}.${ext}`}
 $('#galInput').onchange=e=>handleFiles([...e.target.files]);
 $('#backBtn').onclick=()=>showHome();
-$('#driveTop').onclick=()=>{if(!V)return;if(!allVideos().length){toast('Nenhum vídeo nesta vistoria ainda.');return}if(!pendingVideos()&&V.drive&&V.drive.folderUrl){toast('Todos os vídeos já estão no Drive ✓',1800);return}openSet.add('res');sendToDrive();toast('Enviando vídeos ao Drive…',1800)};
+$('#driveTop').onclick=()=>{if(!V)return;if(!dadosDone()){askDados();return}if(!allVideos().length){toast('Nenhum vídeo nesta vistoria ainda.');return}if(!pendingVideos()&&V.drive&&V.drive.folderUrl){toast('Todos os vídeos já estão no Drive ✓',1800);return}openSet.add('res');sendToDrive();toast('Enviando vídeos ao Drive…',1800)};
 $('#footPhotos').onclick=()=>{if(V)saveAllPhotos($('#footPhotos'))};
 $('#saveBtn').onclick=async()=>{if(!V)return;clearTimeout(saveTimer);V.atualizado=Date.now();await saveNow();if($('#savedLbl').textContent.startsWith('Salvo'))toast('Vistoria salva no aparelho',1600)};
 document.addEventListener('keydown',e=>{const t=e.target;if(e.key==='Enter'&&t.id&&t.id.startsWith('ns-')){e.preventDefault();const b=document.querySelector(`[data-addsub-ok="${t.id.slice(3)}"]`);if(b)b.click()}});
@@ -1066,7 +1091,12 @@ const DRIVE='Google Drive', FOLDER='application/vnd.google-apps.folder';
 let mcpNs, driveMsg='', driveBusy=false;
 async function getMcp(){if(!(window.claude&&typeof window.claude.use==='function'))return null;if(mcpNs===undefined)mcpNs=await window.claude.use('mcp');return mcpNs}
 function allVideos(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const it of s.items){const val=sd.vals[it.id];(val&&val.videos||[]).forEach((id,k)=>out.push({id,label:`${a.nome} › ${s.nome} › vídeo ${k+1}`}))}}}return out}
-function driveBoxHTML(){if(BUILD==='site')return GCLIENT_ID?gDriveBoxHTML():'';if(false)return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Compartilhar</span></div><small style="color:var(--muted)">Envie o PDF e os v\u00eddeos dos testes por WhatsApp, e-mail, Google Drive ou outro app do celular.</small><button class="btn primary" id="shareBtn">${pendingShare&&pendingShare.id===V.id?'Arquivos prontos: toque para compartilhar':'Compartilhar PDF e v\u00eddeos'}</button></div>`;
+function driveReminderHTML(){if(!(BUILD==='claude'||GCLIENT_ID))return '';const all=allVideos().length,n=pendingVideos();
+  let h='';if(n)h+=`<div class="remind">${ICO_CLOUD}<span>Você tem <b>${n} ${n===1?'vídeo que ainda não está':'vídeos que ainda não estão'}</b> no Google Drive. Toque na nuvem lá em cima para enviar.</span></div>`;
+  if(driveMsg)h+=`<div class="note" id="driveSt">${driveMsg}</div>`;
+  if(!n&&all&&V.drive&&V.drive.folderUrl)h+=`<a href="${esc(V.drive.folderUrl)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Vídeos no Drive ✓ · abrir a pasta desta vistoria</a>`;
+  return h}
+function driveBoxHTML(){return driveReminderHTML();if(BUILD==='site')return GCLIENT_ID?gDriveBoxHTML():'';if(false)return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Compartilhar</span></div><small style="color:var(--muted)">Envie o PDF e os v\u00eddeos dos testes por WhatsApp, e-mail, Google Drive ou outro app do celular.</small><button class="btn primary" id="shareBtn">${pendingShare&&pendingShare.id===V.id?'Arquivos prontos: toque para compartilhar':'Compartilhar PDF e v\u00eddeos'}</button></div>`;
 const vids=allVideos();const sent=vids.filter(v=>V.drive&&V.drive.videos&&V.drive.videos[v.id]).length;
   return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Google Drive</span></div>
     <small style="color:var(--muted)">${vids.length?`${sent} de ${vids.length} ${vids.length===1?'vídeo enviado':'vídeos enviados'}.`:'Nenhum vídeo nesta vistoria.'} Os vídeos vão para o Drive quando você tocar neste botão ou na nuvem lá em cima. O PDF também fica guardado na pasta da vistoria, dentro de "Vistorias de Entrega". Os links dos vídeos entram no PDF. Precisa de internet.</small>
@@ -1113,6 +1143,7 @@ async function autoSync(){return;/* envio só quando a usuária tocar no botão 
   driveBusy=false;if(V&&V.id===vid){await saveNow();renderResultado();showEditorRefreshVideos()}}
 window.addEventListener('online',()=>autoSync());
 async function sendToDrive(){
+  if(V&&!dadosDone()){askDados();return}
   if(BUILD==='site')return gSendToDrive();
   if(driveBusy)return;const mcp=await getMcp();
   if(!mcp){setDriveMsg('O envio ao Drive só funciona com o app aberto dentro do Claude e com internet.');return}
