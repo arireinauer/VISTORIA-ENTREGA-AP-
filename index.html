@@ -199,6 +199,7 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 .acc-close.big{background:var(--accent);color:var(--accent-ink);margin-top:4px}
 .acc>.acc-b>.acc-close{width:auto;margin:0 16px 16px}
 .sub>.acc-b>.acc-close,.amb>.acc-b>.acc-close{width:100%;margin:8px 0 0}
+.brkres{min-height:1.2em}
 .skipnote{font-size:.88rem;color:var(--muted);padding:10px 0}
 /* resultado */
 .res-seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -282,7 +283,7 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
 const PIN_HASH='';
-const APP_VERSION='nº 35 · 21/10 às 11h37';
+const APP_VERSION='nº 36 · 21/10 às 11h54';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -366,7 +367,7 @@ const SUBS = [
     {id:'marcadisj', label:'Marca dos disjuntores', type:'text', nophoto:true},
     {id:'circ', label:'Quantidade de circuitos', type:'number', nophoto:true, hintFn:()=>memoV('circuitos')?`Memorial: mínimo de ${memoV('circuitos')} circuitos`:''},
     {id:'separados', label:'Chuveiro e tomadas de 20 A estão em circuitos separados?', type:'check', options:AN, obs:'ifNo'},
-    {id:'chuveiro', label:'O disjuntor do chuveiro atende a corrente calculada?', type:'check', options:AN, obs:'ifNo', hintFn:chuveiroCalc},
+    {id:'chuveiro', label:'Disjuntor do chuveiro instalado (A)', type:'check', breaker:true, options:AN, obs:'ifNo', hintFn:chuveiroCalc},
     {id:'tampa', label:'A tampa do quadro está presente e corretamente encaixada?', type:'check', options:AN, obs:'ifNo'},
     {id:'ident', label:'Os disjuntores estão corretamente identificados com adesivos?', type:'check', options:AN, obs:'ifNo'},
     {id:'fiacao', label:'A fiação está corretamente alocada na caixa?', type:'check', options:AN, obs:'ifNo'},
@@ -502,7 +503,10 @@ function memoDiverg(){const out=[];for(const a of V.ambientes){if(!a.ativo)conti
 const memoV=k=>((V&&V.memorial)||{})[k]||'';
 const numBR=x=>parseFloat(String(x).replace(/\./g,'').replace(',','.'));
 function chuveiroCalc(){const w=numBR(memoV('chuveiro_w')),t=numBR(memoV('tensao'));if(!(w>0&&t>0))return 'Preencha a potência do chuveiro e a tensão no Memorial descritivo para o app calcular a corrente.';
-  const i=w/t;return `Pelo memorial: ${w.toLocaleString('pt-BR')} W ÷ ${t} V = ${i.toFixed(1).replace('.',',')} A. O disjuntor do chuveiro precisa atender essa corrente.`}
+  const i=w/t;return `Pelo memorial: ${w.toLocaleString('pt-BR')} W ÷ ${t} V = ${i.toFixed(1).replace('.',',')} A. Digite o valor do disjuntor do chuveiro que está no quadro: precisa ser de pelo menos ${i.toFixed(1).replace('.',',')} A.`}
+function chuveiroI(){const w=numBR(memoV('chuveiro_w')),t=numBR(memoV('tensao'));return (w>0&&t>0)?w/t:null}
+function breakerEval(val){const i=chuveiroI(),n=numBR(val&&val.num);if(!(n>0)||i===null){if(val)val.v='';return null}val.v=n>=i?'Aprovado':'Não aprovado';return {ok:n>=i,n,i}}
+function breakerResHTML(val){const r=breakerEval(val);if(!r)return '';return `<span class="pill ${r.ok?'ok':'bad'}">${r.ok?'Aprovado':'Não aprovado'} automático</span> <small style="color:var(--muted)">${String(r.n).replace('.',',')} A ${r.ok?'≥':'<'} ${r.i.toFixed(1).replace('.',',')} A calculados</small>`}
 const MAX_FOTOS = 10, MAX_VIDEOS = 3;
 const SUB_BY = Object.fromEntries(SUBS.map(s=>[s.id,s]));
 const customSub=c=>({id:c.id,nome:c.nome,custom:true,items:[{id:'aval',label:'Avaliação',type:'check',options:ANN,obs:'ifNo'}]});
@@ -736,6 +740,7 @@ function itemHTML(a,s,it){
   let ctrl='';
   if(it.type==='text'){ctrl=`<input type="text" id="x-${fid}" data-txt="${path}" value="${esc(val.txt||'')}" placeholder="Digite">`}
   else if(it.type==='number'){ctrl=`<input type="number" inputmode="numeric" min="0" id="n-${fid}" data-num="${path}" value="${esc(val.v??'')}" style="max-width:160px">`}
+  else if(it.breaker){ctrl=`<div class="row" style="flex-wrap:nowrap"><input type="text" inputmode="decimal" id="bk-${fid}" data-brk="${path}" value="${esc(val.num??'')}" placeholder="Ex.: 50" style="max-width:130px"><b style="color:var(--muted)">A</b></div><div class="brkres" data-brkres="${path}">${breakerResHTML(val)}</div>`}
   else if(it.options){ctrl=`<div class="seg">${it.options.map(o=>{const cls=o==='Não se aplica'?'nav':it.type!=='check'?'':o===(it.bad||'Não aprovado')?'badv':'okv';return `<button class="opt ${cls}" data-opt="${path}" data-v="${esc(o)}" aria-pressed="${val.v===o}">${esc(o)}</button>`}).join('')}</div>`;
     if(it.other&&val.v===it.other)ctrl+=`<input type="text" id="o-${fid}" data-txt="${path}" placeholder="Qual?" value="${esc(val.txt||'')}">`;}
   if(it.type==='photo')ctrl='';
@@ -790,7 +795,7 @@ function memoHTML(){const m=V.memorial||{};return `<small style="color:var(--mut
     const dis=o.nsa&&m[k+'_nsa'];
     return `<label class="f">${l}<input type="text" ${o.num?'inputmode="decimal"':''} id="m-${k}" data-memo="${k}" value="${esc(m[k]||'')}" ${dis?'disabled':''}></label>${o.nsa?`<label class="row" style="gap:8px;flex-wrap:nowrap;font-size:.9rem;color:var(--muted)"><input type="checkbox" data-memonsa="${k}" ${dis?'checked':''} style="width:20px;height:20px">Não se aplica</label>`:''}`}).join('')}</div>`).join('')}
 function memoStats(){const m=V.memorial||{};let d=0,t=0;MEMO.forEach(g=>g.items.forEach(([k,l,o={}])=>{t++;if((m[k]||'').toString().trim()||(o.nsa&&m[k+'_nsa']))d++}));return {d,t}}
-function refreshCalcItems(){document.querySelectorAll('[data-item$="|quadro|chuveiro"],[data-item$="|quadro|circ"]').forEach(el=>{const h=el.querySelector('.hint');const {it}=getVal(el.dataset.item,false);if(it&&h)h.textContent=it.hintFn()})}
+function refreshCalcItems(){document.querySelectorAll('[data-item$="|quadro|chuveiro"],[data-item$="|quadro|circ"]').forEach(el=>{const h=el.querySelector('.hint');const {it,val}=getVal(el.dataset.item,false);if(it&&h)h.textContent=it.hintFn();if(it&&it.breaker){const r=el.querySelector('[data-brkres]');if(r)r.innerHTML=breakerResHTML(val||{})}})}
 
 /* ============ STATUS (verdinhos) ============ */
 function setTick(el,on){if(el)el.classList.toggle('done',!!on)}
@@ -869,6 +874,7 @@ function bindEditor(){
     if(t.dataset.d){V.dados[t.dataset.d]=t.value;if(dadosWarn)markDados();if(t.dataset.d==='vistoriador'){try{localStorage.setItem('vist-vistoriador',t.value)}catch(_){}}if(t.dataset.d==='apartamento')$('#topTitle').textContent=t.value?'Apto '+t.value:'Nova vistoria';refreshStatus();scheduleSave();return}
     if(t.dataset.obs){getVal(t.dataset.obs).val.obs=t.value;refreshStatus();scheduleSave();return}
     if(t.dataset.txt){getVal(t.dataset.txt).val.txt=t.value;refreshStatus();scheduleSave();return}
+    if(t.dataset.brk){const {val}=getVal(t.dataset.brk);val.num=t.value;const el=document.querySelector(`[data-brkres="${t.dataset.brk}"]`);if(el)el.innerHTML=breakerResHTML(val);refreshStatus();renderResultado();scheduleSave();return}
     if(t.dataset.num){getVal(t.dataset.num).val.v=t.value;refreshStatus();scheduleSave();return}
     if(t.id==='obsGerais'){V.obsGerais=t.value;scheduleSave();return}
     if(t.dataset.ambCheck){const a=V.ambientes.find(x=>x.id===t.dataset.ambCheck);a.ativo=t.checked;if(a.ativo)openSet.add('a:'+a.id);const act=V.ambientes.filter(x=>x.ativo).map(x=>x.nome);$('#ddSum').textContent=act.length?act.join(', '):'Toque para escolher os ambientes';$('#ambCount').textContent=act.length+' marcados';renderAmbList();renderResultado();refreshStatus();scheduleSave();return}
@@ -1256,7 +1262,7 @@ function buildPDF(){
       need(16);doc.setFont('helvetica','bold');doc.setFontSize(11);col(C.ink);doc.text(s.nome.toUpperCase(),M,y+4);doc.setDrawColor(...C.accent);doc.setLineWidth(0.5);doc.line(M,y+6,M+CW,y+6);doc.setLineWidth(0.2);y+=9;
       const vis=visibleItems(s,sd.vals);
       for(const it of vis){const val=sd.vals[it.id]||{};
-        let ans=it.type==='text'?(val.txt||'—'):it.type==='photo'?`${(val.fotos||[]).length} foto(s)`:it.type==='number'?(val.v!==undefined&&val.v!==''?String(val.v):'—'):(val.v||'—');if(it.other&&val.v===it.other&&val.txt)ans=val.txt;
+        let ans=it.breaker?(val.num?`${String(val.num).replace('.',',')} A · ${val.v||'sem cálculo'}`:'—'):it.type==='text'?(val.txt||'—'):it.type==='photo'?`${(val.fotos||[]).length} foto(s)`:it.type==='number'?(val.v!==undefined&&val.v!==''?String(val.v):'—'):(val.v||'—');if(it.other&&val.v===it.other&&val.txt)ans=val.txt;
         need(8);const labelLines=doc.setFont('helvetica','normal').setFontSize(10).splitTextToSize(it.label,CW-52);
         doc.setFont('helvetica','normal');doc.setFontSize(10);col(C.ink);doc.text(labelLines,M,y+3.5);
         doc.setFont('helvetica','bold');col(statusColor(val.v,it));const al=doc.splitTextToSize(ans,48);doc.text(al,W-M,y+3.5,{align:'right'});
