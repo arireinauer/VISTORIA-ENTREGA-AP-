@@ -182,6 +182,10 @@ label.f.missing{position:relative}
 label.f.missing::before{content:"*";position:absolute;left:-11px;top:-2px;color:var(--bad);font-weight:700;font-size:1.1rem}
 label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 .verbox{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;color:var(--muted)}
+.acc-close{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;font:inherit;font-weight:600;font-size:.9rem;color:var(--accent);background:var(--accent-soft);border:0;border-radius:8px;padding:10px;margin-top:8px;cursor:pointer}
+.acc-close.big{background:var(--accent);color:var(--accent-ink);margin-top:4px}
+.acc>.acc-b>.acc-close{width:auto;margin:0 16px 16px}
+.sub>.acc-b>.acc-close,.amb>.acc-b>.acc-close{width:100%;margin:8px 0 0}
 .skipnote{font-size:.88rem;color:var(--muted);padding:10px 0}
 /* resultado */
 .res-seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -253,7 +257,7 @@ label.f.missing input{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
 <script>
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
-const APP_VERSION='nº 28 · 21/10 às 11h11';
+const APP_VERSION='nº 30 · 21/10 às 11h14';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -636,11 +640,11 @@ function showEditor(){
           <label class="f">Apartamento<input type="text" data-d="apartamento" id="d-apartamento" value="${esc(V.dados.apartamento)}"></label>
           <label class="f">Data da vistoria<input type="date" data-d="data" id="d-data" value="${esc(V.dados.data)}"></label>
         </div>
-      </div></div>
+      </div><button class="acc-close" data-close-acc="1">Fechar dados da vistoria <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10l4-4 4 4"/></svg></button></div>
     </section>
     <section class="card acc ${openSet.has('memo')?'open':''}" data-acc="memo">
       <button class="acc-h"><span class="nm">Memorial descritivo</span><span class="cnt" id="memoCnt"></span><span class="tick" id="tk-memo">${CHECK}</span>${CHEV}</button>
-      <div class="acc-b"><div class="pad" id="memoBody">${memoHTML()}</div></div>
+      <div class="acc-b"><div class="pad" id="memoBody">${memoHTML()}</div><button class="acc-close" data-close-acc="1">Fechar memorial <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10l4-4 4 4"/></svg></button></div>
     </section>
     <section class="card acc ${openSet.has('ambs')?'open':''}" data-acc="ambs">
       <button class="acc-h"><span class="nm">Ambientes do apartamento</span><span class="cnt" id="ambCount"></span>${CHEV}</button>
@@ -655,7 +659,7 @@ function showEditor(){
             <button class="btn primary dd-done" id="ddClose">Pronto · fechar lista</button>
           </div>
         </div>
-      </div></div>
+      </div><button class="acc-close" data-close-acc="1">Fechar ambientes <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10l4-4 4 4"/></svg></button></div>
     </section>
     <div id="ambList" style="display:flex;flex-direction:column;gap:12px"></div>
     <section class="card pad" id="resultado"></section>
@@ -683,6 +687,7 @@ function ambHTML(a){
         <div class="addamb" data-addsub-row="${a.id}" hidden><input type="text" id="ns-${a.id}" placeholder="Nome do item (ex.: Esquadrias)"><button class="btn small" data-addsub-ok="${a.id}">Adicionar</button></div>
       </div>
       ${subsOf(a).filter(s=>a.subs[s.id].on).map(s=>subHTML(a,s)).join('')}
+      <button class="acc-close big" data-close-acc="1">Fechar ${esc(a.nome)} <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10l4-4 4 4"/></svg></button>
     </div></section>`;
 }
 function subHTML(a,s){
@@ -695,6 +700,7 @@ function subBodyHTML(a,s){
   const vals=a.subs[s.id].vals;const vis=visibleItems(s,vals);
   let h=vis.map(it=>itemHTML(a,s,it)).join('');
   if(skippedRest(s,vals))h+=`<div class="skipnote">Demais itens de ${s.nome.toLowerCase()} não se aplicam.</div>`;
+  h+=`<button class="acc-close" data-close-acc="1">Fechar ${esc(s.nome.toLowerCase())} <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 10l4-4 4 4"/></svg></button>`;
   return h;
 }
 function itemHTML(a,s,it){
@@ -790,6 +796,7 @@ function bindEditor(){
   app.onclick=async e=>{
     const b=e.target.closest('button');if(!b)return;
     if(e.target.closest('[data-drag]'))return;
+    if(b.dataset.closeAcc){const acc=b.closest('.acc');if(acc){acc.classList.remove('open');openSet.delete(acc.dataset.acc);const r=acc.getBoundingClientRect();if(r.top<110)window.scrollBy({top:r.top-110,behavior:'smooth'})}return}
     if(b.classList.contains('acc-h')){const acc=b.parentElement;const k=acc.dataset.acc;acc.classList.toggle('open');acc.classList.contains('open')?openSet.add(k):openSet.delete(k);return}
     if(b.dataset.ambToggle){const a=V.ambientes.find(x=>x.id===b.dataset.ambToggle);a.ativo=!a.ativo;if(a.ativo)openSet.add('a:'+a.id);renderAmbChips();renderAmbList();renderResultado();refreshStatus();scheduleSave();return}
     if(b.dataset.subToggle){const [aid,sid]=b.dataset.subToggle.split('|');const a=V.ambientes.find(x=>x.id===aid);a.subs[sid].on=!a.subs[sid].on;
