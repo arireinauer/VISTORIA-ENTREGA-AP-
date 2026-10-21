@@ -166,6 +166,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 .dd-panel[hidden]{display:none}
 .dd-row{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);font-size:1rem;cursor:pointer}
 .dd-row input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.verbox{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;color:var(--muted)}
 .skipnote{font-size:.88rem;color:var(--muted);padding:10px 0}
 /* resultado */
 .res-seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -234,7 +235,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 <script>
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
-const APP_VERSION='21/10 · 11h45 · Menu ambientes';
+const APP_VERSION='21/10 · 12h00 · Atualizar';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -566,7 +567,7 @@ async function showHome(){
     ${homeListHTML(all)}
     <div class="note">Tudo fica gravado neste aparelho, mesmo sem internet. ${BUILD==='site'?'Nada sai do aparelho até você compartilhar.':'Nada sai do aparelho até você enviar ao Drive ou por e-mail.'}</div>
     ${BUILD==='site'?`<section class="card pad"><h2>Fotos</h2><label class="row" style="gap:10px;align-items:flex-start;cursor:pointer;flex-wrap:nowrap"><input type="checkbox" id="saveCopy" ${saveCopyOn()?'checked':''} style="width:22px;height:22px;flex:none;margin-top:2px"><span>Salvar automaticamente uma cópia de cada foto tirada no celular<br><small style="color:var(--muted)">${isIOS()?'No iPhone, cada foto abre uma tela para salvar. Prefira o botão de mídia (ícone de foto na barra de baixo da vistoria): vermelho quando falta salvar, verde quando está tudo salvo.':'As fotos vão para a pasta Downloads e aparecem na Galeria.'}</small></span></label></section>`:''}
-    <small style="color:var(--muted);text-align:center">Versão do app: ${APP_VERSION}</small>
+    <div class="verbox"><small>Versão do app: ${APP_VERSION}</small>${BUILD==='site'?'<button class="btn small" id="updBtn">Atualizar app</button>':''}</div>
     <section class="card pad"><h2>Backup</h2><small style="color:var(--muted)">Salva todas as vistorias e fotos num arquivo. Use para trocar de celular ou levar para outro endereço do app. Os vídeos não entram no backup.</small>
       <div class="row"><button class="btn small" id="bkExport">Fazer backup</button><button class="btn small" id="bkImport">Restaurar backup</button></div></section>`;
   $('#newBtn').onclick=async()=>{V=newVistoria();openSet.clear();openSet.add('dados');openSet.add('ambs');await saveNow();showEditor()};
@@ -581,6 +582,7 @@ async function showHome(){
       if(busyHome)return;busyHome=true;b.textContent='Gerando…';try{const r=await withVistoria(b.dataset.hshare,async()=>{const {blob,name}=buildPDF();return {files:[new File([blob],name,{type:'application/pdf'})],title:name}});
         const ok=await shareFiles(r.files,r.title,true);if(ok==='retry'){pendingShare={id:b.dataset.hshare,...r};b.innerHTML=ICO_MAIL+'PDF pronto: toque para compartilhar';busyHome=false;return}}catch(err){toast('Erro ao gerar o PDF.')}b.innerHTML=ICO_MAIL+'Compartilhar';busyHome=false;return}
     if(b.id==='bkExport'){exportBackup();return}
+    if(b.id==='updBtn'){updateApp(b);return}
     if(b.id==='bkImport'){$('#bkInput').value='';$('#bkInput').click();return}
     if(b.dataset.hdel){if(b.dataset.confirm!=='1'){b.dataset.confirm='1';b.innerHTML=ICO_DEL+'Toque de novo para excluir';setTimeout(()=>{if(b.isConnected){b.dataset.confirm='';b.innerHTML=ICO_DEL+'Excluir'}},4000);return}
       const v=normalize(await dbGet('vistorias',b.dataset.hdel));if(v){const ids=[];for(const a of v.ambientes)for(const k in a.subs)for(const i in a.subs[k].vals){const vv=a.subs[k].vals[i];(vv.fotos||[]).concat(vv.videos||[],umidPhotoIds(vv)).forEach(f=>ids.push(f))}
@@ -939,6 +941,17 @@ $('#sheet').oninput=e=>{const t=e.target;if(!sheetPath)return;const U=getVal(she
   if(t.dataset.ufield){const [pid,f]=t.dataset.ufield.split('|');U.pontos.find(p=>p.id===pid)[f]=t.value;scheduleSave();return}
   if(t.dataset.uval){const [pid,kind,aid]=t.dataset.uval.split('|');const p=U.pontos.find(x=>x.id===pid);const ar=kind==='seco'?p.seco:p.molhadas.find(m=>m.id===aid);ar.valor=t.value;scheduleSave();return}
 };
+
+/* ============ ATUALIZAR APP ============ */
+async function updateApp(btn){if(navigator.onLine===false){toast('Sem internet agora. Para atualizar, conecte e tente de novo.');return}
+  btn.disabled=true;btn.textContent='Procurando…';
+  try{const r=await fetch('./index.html?v='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/const APP_VERSION='([^']*)'/);const nova=m?m[1]:'';
+    if(nova&&nova===APP_VERSION){toast('Você já está na versão mais nova ('+APP_VERSION+').',2600);btn.disabled=false;btn.textContent='Atualizar app';return}
+    btn.textContent='Atualizando…';
+    try{const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(reg)await reg.update()}catch(e){}
+    try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}
+    toast(nova?'Atualizando para a versão '+nova+'…':'Atualizando…',1500);setTimeout(()=>location.reload(),900)}
+  catch(e){toast('Não consegui buscar a versão nova. Verifique a internet.');btn.disabled=false;btn.textContent='Atualizar app'}}
 
 /* ============ COMPARTILHAR + BACKUP ============ */
 let pendingShare=null;
