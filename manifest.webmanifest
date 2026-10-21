@@ -1,13 +1,13 @@
 {
-  "name": "Vistoria de Entrega",
+  "name": "Vistoria de Entrega · Titá",
   "short_name": "Vistoria",
   "description": "Vistoria de entrega de apartamento com fotos, vídeos e laudo em PDF.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ECEFF0",
-  "theme_color": "#1F5A6B",
+  "background_color": "#F2EFEC",
+  "theme_color": "#C4540A",
   "lang": "pt-BR",
   "icons": [
     {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},

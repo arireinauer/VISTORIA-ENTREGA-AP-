@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1F5A6B">
+<meta name="theme-color" content="#8F3B05">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Vistoria">
@@ -18,38 +18,39 @@
 <style>
 /* Layout: uma coluna de fichas empilhadas (estilo prancheta de obra), ambientes e subtemas em sanfona, barra fixa no rodapé para o PDF */
 :root{
-  --bg:#ECEFF0; --surface:#FFFFFF; --surface-2:#F5F7F7; --ink:#172126; --muted:#5A686F; --line:#D2D9DC;
-  --accent:#1F5A6B; --accent-ink:#FFFFFF; --accent-soft:#DCEBEF;
+  --bg:#F2EFEC; --surface:#FFFFFF; --surface-2:#F8F6F4; --ink:#1F1A17; --muted:#6B625B; --line:#DDD6D0;
+  --accent:#C4540A; --accent-ink:#FFFFFF; --accent-soft:#FBE5D3; --brand-deep:#8F3B05;
   --ok:#1C7443; --ok-bg:#DCF0E3; --bad:#AE2A21; --bad-bg:#F8DFDC; --na:#5F686C; --na-bg:#E3E7E8;
   --warn:#8A5A00;
   --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0F1517; --surface:#172023; --surface-2:#1D282C; --ink:#E5ECEE; --muted:#93A3A9; --line:#2B383D;
-  --accent:#62B4CA; --accent-ink:#0B1A1F; --accent-soft:#1E3A43;
+  --bg:#16120F; --surface:#201A16; --surface-2:#28211C; --ink:#EEE8E3; --muted:#A89C93; --line:#3A302A;
+  --accent:#FF8F3D; --accent-ink:#1F0F04; --accent-soft:#45260F; --brand-deep:#B8530F;
   --ok:#62C98E; --ok-bg:#173524; --bad:#F08B81; --bad-bg:#3E1D1A; --na:#A0AAAE; --na-bg:#263135; --warn:#E3B45A;
   color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0F1517; --surface:#172023; --surface-2:#1D282C; --ink:#E5ECEE; --muted:#93A3A9; --line:#2B383D;
-  --accent:#62B4CA; --accent-ink:#0B1A1F; --accent-soft:#1E3A43;
+  --bg:#16120F; --surface:#201A16; --surface-2:#28211C; --ink:#EEE8E3; --muted:#A89C93; --line:#3A302A;
+  --accent:#FF8F3D; --accent-ink:#1F0F04; --accent-soft:#45260F; --brand-deep:#B8530F;
   --ok:#62C98E; --ok-bg:#173524; --bad:#F08B81; --bad-bg:#3E1D1A; --na:#A0AAAE; --na-bg:#263135; --warn:#E3B45A;
   color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--accent)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--brand-deep)}
 .wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 120px;display:flex;flex-direction:column;gap:14px}
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--accent);color:var(--accent-ink)}
 .top-in{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;display:flex;align-items:center;gap:12px}
 .top h1{font-family:var(--f-display);font-weight:700;font-size:1.2rem;letter-spacing:.02em;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
 .saved{font-size:.78rem;opacity:.85;white-space:nowrap}
+.brand{background:var(--brand-deep);color:#FFF;text-align:center;font-family:var(--f-display);font-weight:700;font-size:.78rem;letter-spacing:.18em;padding-block:5px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .savebtn{font:inherit;font-weight:700;font-size:.92rem;padding:7px 14px;border-radius:8px;border:0;background:var(--accent-ink);color:var(--accent);cursor:pointer;flex:none}
 .iconbtn{background:transparent;border:1px solid currentColor;color:inherit;border-radius:8px;padding:6px 10px;font:inherit;font-size:.9rem;cursor:pointer}
 h2{font-family:var(--f-display);font-weight:700;font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;margin:0;color:var(--muted)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px}
 .pad{padding:16px;display:flex;flex-direction:column;gap:12px}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);font-weight:500}
-input[type=text],input[type=date],input[type=number],textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+input[type=text],input[type=date],input[type=number],input[type=url],textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
 textarea{min-height:64px;resize:vertical}
 input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -183,7 +184,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 
 </head>
 <body>
-<header class="top"><div class="top-in">
+<header class="top"><div class="brand">TITÁ SOLUÇÕES DE ENGENHARIA</div><div class="top-in">
   <button class="iconbtn" id="backBtn" hidden aria-label="Voltar para a lista">‹ Lista</button>
   <h1 id="topTitle">Vistoria de Entrega</h1>
   <span class="saved" id="savedLbl"></span>
@@ -207,7 +208,8 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 
 <script>
 const BUILD='site';
-const APP_VERSION='20/10 · 21h00';
+const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
+const APP_VERSION='21/10 · 10h15 · Titá';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -479,7 +481,7 @@ async function showHome(){
     ${db?'':'<div class="note">Este navegador não permitiu guardar dados. A vistoria funciona, mas será perdida se a página fechar.</div>'}
     ${homeListHTML(all)}
     <div class="note">Tudo fica gravado neste aparelho, mesmo sem internet. ${BUILD==='site'?'Nada sai do aparelho até você compartilhar.':'Nada sai do aparelho até você enviar ao Drive ou por e-mail.'}</div>
-    ${BUILD==='site'?`<section class="card pad"><h2>Fotos</h2><label class="row" style="gap:10px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="saveCopy" ${saveCopyOn()?'checked':''} style="width:22px;height:22px;flex:none;margin-top:2px"><span>Salvar automaticamente uma cópia de cada foto tirada no celular<br><small style="color:var(--muted)">${isIOS()?'No iPhone, cada foto abre uma tela para salvar. Prefira o botão de mídia (ícone de foto na barra de baixo da vistoria): vermelho quando falta salvar, verde quando está tudo salvo.':'As fotos vão para a pasta Downloads e aparecem na Galeria.'}</small></span></label></section>`:''}
+    ${BUILD==='site'?`<section class="card pad"><h2>Fotos</h2><label class="row" style="gap:10px;align-items:flex-start;cursor:pointer;flex-wrap:nowrap"><input type="checkbox" id="saveCopy" ${saveCopyOn()?'checked':''} style="width:22px;height:22px;flex:none;margin-top:2px"><span>Salvar automaticamente uma cópia de cada foto tirada no celular<br><small style="color:var(--muted)">${isIOS()?'No iPhone, cada foto abre uma tela para salvar. Prefira o botão de mídia (ícone de foto na barra de baixo da vistoria): vermelho quando falta salvar, verde quando está tudo salvo.':'As fotos vão para a pasta Downloads e aparecem na Galeria.'}</small></span></label></section>`:''}
     <small style="color:var(--muted);text-align:center">Versão do app: ${APP_VERSION}</small>
     <section class="card pad"><h2>Backup</h2><small style="color:var(--muted)">Salva todas as vistorias e fotos num arquivo. Use para trocar de celular ou levar para outro endereço do app. Os vídeos não entram no backup.</small>
       <div class="row"><button class="btn small" id="bkExport">Fazer backup</button><button class="btn small" id="bkImport">Restaurar backup</button></div></section>`;
@@ -599,7 +601,7 @@ function itemHTML(a,s,it){
     ${full?`<span class="hint" style="margin:0">Limite de ${MAX_FOTOS} fotos atingido</span>`:`<button class="photo-btn ${it.photo&&!fotos.length?'need':''}" data-cam="${path}">${CAM}Foto</button>
     <button class="photo-btn" data-gal="${path}">Galeria</button><span class="hint" style="margin:0">${fotos.length}/${MAX_FOTOS}</span>`}</div>`;
   const vids=val.videos||[];
-  const vh=!it.test?'':`<div class="vids">${vids.map(id=>{const vv=videoCache.get(id);return vv?`<div class="vthumb"><video src="${vv.url}" controls playsinline preload="metadata"></video><div class="row">${BUILD==='site'?((V.fotosSalvas||{})[id]?'<span class="pill ok">Salvo no celular</span>':'<span class="pill bad">Não salvo no celular</span>'):(V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':'<span class="pill na">Só no aparelho</span>')}<button class="btn small" data-dlvid="${id}">Baixar</button><button class="btn small danger" data-delvid="${path}|${id}">Remover</button></div></div>`:''}).join('')}
+  const vh=!it.test?'':`<div class="vids"><label class="f"><span class="obs-l">Link do vídeo no Google Drive (opcional)</span><input type="url" inputmode="url" id="vl-${fid}" data-vlink="${path}" value="${esc(val.vlink||'')}" placeholder="Cole aqui o link do vídeo"></label>${vids.map(id=>{const vv=videoCache.get(id);return vv?`<div class="vthumb"><video src="${vv.url}" controls playsinline preload="metadata"></video><div class="row">${BUILD==='site'?((V.fotosSalvas||{})[id]?'<span class="pill ok">Salvo no celular</span>':'<span class="pill bad">Não salvo no celular</span>')+(GCLIENT_ID&&V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':''):(V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':'<span class="pill na">Só no aparelho</span>')}<button class="btn small" data-dlvid="${id}">Baixar</button><button class="btn small danger" data-delvid="${path}|${id}">Remover</button></div></div>`:''}).join('')}
     ${vids.length>=MAX_VIDEOS?`<span class="hint" style="margin:0">Limite de ${MAX_VIDEOS} vídeos atingido</span>`:`${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?`<span class="obs-l req">${(it.videoMin||1)>1?`Grave ${it.videoMin} vídeos do teste (obrigatório)`:'Vídeo do teste obrigatório'}</span>`:''}<div class="row"><button class="photo-btn vid ${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?'need':''}" data-vid="${path}">${VID}Gravar vídeo</button><button class="photo-btn vid" data-vidgal="${path}">Vídeo da galeria</button><span class="hint" style="margin:0">${vids.length}/${MAX_VIDEOS}</span></div>`}</div>`;
   return `<div class="item" data-item="${path}">
     <div class="item-h"><span class="q">${it.test?TESTBADGE:''}${esc(it.label)}</span><span class="tick" data-tk-item="${path}">${CHECK}</span></div>
@@ -611,6 +613,8 @@ function renderResultado(){
     <div class="pend">${p.length?`<b style="color:var(--bad);font-size:1.05rem">${p.length} ${p.length===1?'item não aprovado':'itens não aprovados'}</b>`:'<span style="color:var(--muted)">Nenhum item marcado como não aprovado até agora.</span>'}</div>
     <div class="res-seg">${['Aprovado','Não aprovado'].map(o=>`<button class="opt ${o==='Aprovado'?'okv':'badv'}" data-res="${o}" aria-pressed="${V.resultado===o}">${o}</button>`).join('')}</div>
     <label class="f">Observações gerais (opcional)<textarea id="obsGerais" rows="3">${esc(V.obsGerais||'')}</textarea></label>
+    <label class="f">Link da pasta de vídeos no Google Drive (opcional)<input type="url" inputmode="url" id="pastaLink" value="${esc(V.pastaLink||'')}" placeholder="Cole aqui o link da pasta"></label>
+    <details class="note"><summary style="cursor:pointer;font-weight:600">Como pegar o link no iPhone</summary><ol style="margin:8px 0 0;padding-left:18px"><li>No app <b>Google Drive</b>, toque em <b>+</b> › <b>Upload</b> e envie o vídeo (ou a pasta com os vídeos).</li><li>Toque nos <b>três pontinhos</b> do vídeo › <b>Compartilhar</b> › <b>Gerenciar acesso</b> e mude para <b>Qualquer pessoa com o link</b>.</li><li>Volte, toque em <b>Copiar link</b> e cole aqui no app.</li></ol></details>
     ${driveBoxHTML()}
     <button class="btn mediabtn" id="saveAllPhotos">Salvar fotos e vídeos no celular</button>`;
 }
@@ -685,6 +689,8 @@ function bindEditor(){
     if(t.dataset.txt){getVal(t.dataset.txt).val.txt=t.value;refreshStatus();scheduleSave();return}
     if(t.dataset.num){getVal(t.dataset.num).val.v=t.value;refreshStatus();scheduleSave();return}
     if(t.id==='obsGerais'){V.obsGerais=t.value;scheduleSave();return}
+    if(t.dataset.vlink){getVal(t.dataset.vlink).val.vlink=t.value.trim();scheduleSave();return}
+    if(t.id==='pastaLink'){V.pastaLink=t.value.trim();scheduleSave();return}
   };
   $('#newAmb').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#addAmbBtn').click()}};
 }
@@ -874,12 +880,60 @@ function endDrag(){if(!drag)return;const {list,card}=drag;drag=null;list.classLi
   V.ambientes=[...act,...V.ambientes.filter(a=>!act.includes(a))];renderAmbChips();scheduleSave();toast('Ordem dos ambientes salva',1400)}
 document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
 
+/* ============ GOOGLE DRIVE DIRETO (versão site) ============ */
+let gTok=null,gClient=null,gAfterLogin=null;
+function cachedTok(){if(gTok&&gTok.exp>Date.now()+60000)return gTok.token;try{const t=JSON.parse(localStorage.getItem('vist-gtok')||'null');if(t&&t.exp>Date.now()+60000){gTok=t;return t.token}}catch(e){}return null}
+function clearTok(){gTok=null;try{localStorage.removeItem('vist-gtok')}catch(e){}}
+function initGIS(){if(!GCLIENT_ID||gClient||navigator.onLine===false)return;if(window.google&&google.accounts&&google.accounts.oauth2){mkClient();return}
+  if(document.getElementById('gis'))return;const sc=document.createElement('script');sc.id='gis';sc.src='https://accounts.google.com/gsi/client';sc.async=true;sc.onload=mkClient;sc.onerror=()=>sc.remove();document.head.appendChild(sc)}
+function mkClient(){try{gClient=google.accounts.oauth2.initTokenClient({client_id:GCLIENT_ID,scope:'https://www.googleapis.com/auth/drive.file',
+  callback:r=>{const cb=gAfterLogin;gAfterLogin=null;if(r&&r.access_token){gTok={token:r.access_token,exp:Date.now()+(Number(r.expires_in)||3600)*1000};try{localStorage.setItem('vist-gtok',JSON.stringify(gTok))}catch(e){}if(cb)cb(true)}else{if(cb)cb(false)}},
+  error_callback:()=>{const cb=gAfterLogin;gAfterLogin=null;if(cb)cb(false)}})}catch(e){gClient=null}}
+/* precisa ser chamado direto no toque do botão */
+function gLogin(then){if(cachedTok()){then(true);return}if(!gClient){initGIS();setDriveMsg('Conectando ao Google… toque de novo em alguns segundos.');return}gAfterLogin=then;gClient.requestAccessToken({prompt:''})}
+async function gFetch(method,url,body,headers={}){const t=cachedTok();if(!t)throw Object.assign(new Error(),{code:'need_login'});
+  const r=await fetch(url,{method,headers:{Authorization:'Bearer '+t,...headers},body});if(r.status===401){clearTok();throw Object.assign(new Error(),{code:'need_login'})}
+  if(!r.ok){let m='';try{m=(await r.json()).error.message}catch(e){}throw Object.assign(new Error(m),{code:'http',status:r.status})}return r}
+async function gCreateFolder(name,parent){const meta={name,mimeType:FOLDER};if(parent)meta.parents=[parent];return (await gFetch('POST','https://www.googleapis.com/drive/v3/files?fields=id,webViewLink',JSON.stringify(meta),{'Content-Type':'application/json'})).json()}
+async function gUpload(blob,name,type,parent){const bd='vist'+Math.random().toString(36).slice(2);
+  const body=new Blob([`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n`,JSON.stringify({name,parents:[parent]}),`\r\n--${bd}\r\nContent-Type: ${type}\r\n\r\n`,blob,`\r\n--${bd}--`]);
+  return (await gFetch('POST','https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',body,{'Content-Type':'multipart/related; boundary='+bd})).json()}
+async function gShareAnyone(id){try{await gFetch('POST',`https://www.googleapis.com/drive/v3/files/${id}/permissions`,JSON.stringify({role:'reader',type:'anyone'}),{'Content-Type':'application/json'})}catch(e){if(e.code==='need_login')throw e}}
+async function gEnsureFolder(){V.drive=V.drive||{};V.drive.videos=V.drive.videos||{};if(V.drive.folderId&&V.drive.g)return;
+  let root=null;try{root=localStorage.getItem('vist-groot')}catch(e){}
+  const d=V.dados;const title=`Apto ${d.apartamento||'sem número'} - ${d.cliente||'Cliente'} - ${fmtDate(d.data).replace(/\//g,'-')}`;
+  let f;try{if(!root)throw 0;f=await gCreateFolder(title,root)}catch(e){if(e&&e.code==='need_login')throw e;const r=await gCreateFolder('Vistorias de Entrega');root=r.id;try{localStorage.setItem('vist-groot',root)}catch(_){}f=await gCreateFolder(title,root)}
+  await gShareAnyone(f.id);V.drive.folderId=f.id;V.drive.folderUrl=f.webViewLink||`https://drive.google.com/drive/folders/${f.id}`;V.drive.g=true;V.drive.videos={};await saveNow()}
+async function gSyncVideos(progress=()=>{}){const fails=[];if(!allVideos().length)return {fails};await gEnsureFolder();
+  const pend=allVideos().filter(v=>!V.drive.videos[v.id]);let n=0;
+  for(const v of pend){const vv=videoCache.get(v.id);if(!vv)continue;n++;progress(`Enviando vídeo ${n} de ${pend.length} ao Drive…`);
+    const [type,ext]=driveVideoType(vv);const name=`Video_Apto_${slug(V.dados.apartamento)}_${slug(v.label.replace(/ › /g,'_'))}.${ext}`;
+    try{const f=await gUpload(vv.blob,name,type,V.drive.folderId);await gShareAnyone(f.id);V.drive.videos[v.id]={id:f.id,url:f.webViewLink||`https://drive.google.com/file/d/${f.id}/view`};await saveNow()}
+    catch(e){if(e.code==='need_login')throw e;fails.push(`${v.label}: ${e.message||'erro no envio'}`)}}
+  return {fails}}
+function gDriveBoxHTML(){const vids=allVideos();const sent=vids.filter(v=>V.drive&&V.drive.videos&&V.drive.videos[v.id]).length;const logged=!!cachedTok();
+  return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Google Drive</span></div>
+    <small style="color:var(--muted)">${vids.length?`${sent} de ${vids.length} ${vids.length===1?'vídeo no Drive':'vídeos no Drive'}.`:'Nenhum vídeo nesta vistoria.'} Os vídeos vão para a pasta "Vistorias de Entrega" no seu Drive, com link aberto para quem receber o PDF. ${logged?'Conectado.':'Na primeira vez de cada dia, o Google pede para você entrar.'}</small>
+    <button class="btn primary" id="driveBtn" ${driveBusy?'disabled':''}>${driveBusy?'Enviando…':'Enviar vídeos e PDF ao Drive'}</button>
+    ${V.drive&&V.drive.folderUrl?`<a href="${esc(V.drive.folderUrl)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">Abrir a pasta desta vistoria no Drive</a>`:''}
+    ${driveMsg?`<div class="note" id="driveSt">${driveMsg}</div>`:''}</div>`}
+function gErr(e){if(e&&e.code==='need_login')return 'A conexão com o Google expirou. Toque em "Enviar vídeos e PDF ao Drive" de novo.';if(e&&e.status===403)return 'O Google recusou o acesso. Confira se o seu e-mail está como usuário de teste no Google Cloud.';return 'Não consegui enviar ao Drive. Verifique a internet e tente de novo.'+(e&&e.message?' ('+esc(e.message)+')':'')}
+function gSendToDrive(){if(driveBusy)return;if(navigator.onLine===false){setDriveMsg('Sem internet agora. Os vídeos continuam guardados no aparelho.');return}
+  gLogin(async ok=>{if(!ok){setDriveMsg('Não foi possível entrar na conta Google. Tente de novo.');return}
+    driveBusy=true;setDriveMsg('Preparando a pasta no Drive…');let fails=[];
+    try{await gEnsureFolder();fails=(await gSyncVideos(setDriveMsg)).fails;setDriveMsg('Enviando o PDF…');
+      const {blob,name}=buildPDF();const f=await gUpload(blob,name,'application/pdf',V.drive.folderId);await gShareAnyone(f.id);V.drive.pdfUrl=f.webViewLink;await saveNow();
+      setDriveMsg(fails.length?`Enviado, com pendências:<br>${fails.map(esc).join('<br>')}`:'Tudo enviado. O PDF na pasta já tem os links dos vídeos, abertos para quem receber.')}
+    catch(e){setDriveMsg(gErr(e))}
+    driveBusy=false;renderResultado();showEditorRefreshVideos()})}
+if(BUILD==='site'&&GCLIENT_ID){window.addEventListener('load',initGIS);window.addEventListener('online',initGIS)}
+
 /* ============ GOOGLE DRIVE ============ */
 const DRIVE='Google Drive', FOLDER='application/vnd.google-apps.folder';
 let mcpNs, driveMsg='', driveBusy=false;
 async function getMcp(){if(!(window.claude&&typeof window.claude.use==='function'))return null;if(mcpNs===undefined)mcpNs=await window.claude.use('mcp');return mcpNs}
 function allVideos(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd.on)continue;for(const it of s.items){const val=sd.vals[it.id];(val&&val.videos||[]).forEach((id,k)=>out.push({id,label:`${a.nome} › ${s.nome} › vídeo ${k+1}`}))}}}return out}
-function driveBoxHTML(){if(BUILD==='site')return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Compartilhar</span></div><small style="color:var(--muted)">Envie o PDF e os v\u00eddeos dos testes por WhatsApp, e-mail, Google Drive ou outro app do celular.</small><button class="btn primary" id="shareBtn">${pendingShare&&pendingShare.id===V.id?'Arquivos prontos: toque para compartilhar':'Compartilhar PDF e v\u00eddeos'}</button></div>`;
+function driveBoxHTML(){if(BUILD==='site')return (GCLIENT_ID?gDriveBoxHTML():'')+`<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Compartilhar</span></div><small style="color:var(--muted)">Envie o PDF e os v\u00eddeos dos testes por WhatsApp, e-mail, Google Drive ou outro app do celular.</small><button class="btn primary" id="shareBtn">${pendingShare&&pendingShare.id===V.id?'Arquivos prontos: toque para compartilhar':'Compartilhar PDF e v\u00eddeos'}</button></div>`;
 const vids=allVideos();const sent=vids.filter(v=>V.drive&&V.drive.videos&&V.drive.videos[v.id]).length;
   return `<div class="area" style="gap:10px"><div class="area-h"><span style="color:var(--accent)">Google Drive</span></div>
     <small style="color:var(--muted)">${vids.length?`${sent} de ${vids.length} ${vids.length===1?'vídeo enviado':'vídeos enviados'}.`:'Nenhum vídeo nesta vistoria.'} Os vídeos sobem sozinhos para o Drive quando há internet, e o PDF já sai com os links. Este botão também guarda o PDF na pasta da vistoria, dentro de "Vistorias de Entrega". Os links dos vídeos entram no PDF. Precisa de internet.</small>
@@ -906,6 +960,7 @@ async function uploadFile(mcp,fileArgs,blob,name,type){
   const r=await mcp.callTool(DRIVE,'create_file',{title:name,parentId:V.drive.folderId,contentMimeType:type,base64Content:content,disableConversionToGoogleType:true});
   const f=pickFile(r.payload);if(!f)throw Object.assign(new Error('no id'),{code:'tool_error'});return {id:f.id,url:f.url||`https://drive.google.com/file/d/${f.id}/view`}}
 async function syncVideos(progress=()=>{}){
+  if(BUILD==='site')return gSyncVideos(progress);
   const mcp=await getMcp();if(!mcp)throw Object.assign(new Error(),{code:'no_mcp'});
   let fileArgs=false;try{fileArgs=!!(await mcp.listTools()).fileArgs}catch(e){}
   const fails=[];
@@ -919,12 +974,13 @@ async function syncVideos(progress=()=>{}){
       catch(e){if(FATAL.includes(e.code))throw e;fails.push(`${v.label}: ${e.code==='too_big_inline'?'este aparelho não permite enviar arquivos grandes daqui':driveErr(e)}`)}}
   return {mcp,fileArgs,fails};
 }
-const pendingVideos=()=>BUILD==='claude'&&V?allVideos().filter(v=>!(V.drive&&V.drive.videos&&V.drive.videos[v.id])).length:0;
-async function autoSync(){if(BUILD!=='claude'||!V||driveBusy||navigator.onLine===false||!pendingVideos())return;const vid=V.id;driveBusy=true;
+const pendingVideos=()=>(BUILD==='claude'||GCLIENT_ID)&&V?allVideos().filter(v=>!(V.drive&&V.drive.videos&&V.drive.videos[v.id])).length:0;
+async function autoSync(){if((BUILD!=='claude'&&!(GCLIENT_ID&&cachedTok()))||!V||driveBusy||navigator.onLine===false||!pendingVideos())return;const vid=V.id;driveBusy=true;
   try{const r=await syncVideos(m=>{if(V&&V.id===vid)$('#savedLbl').textContent=m.replace(' ao Drive…','…')});if(r.fails.length)driveMsg=`Alguns vídeos não subiram:<br>${r.fails.map(esc).join('<br>')}`}catch(e){if(e.code!=='no_mcp')driveMsg=esc(driveErr(e))}
   driveBusy=false;if(V&&V.id===vid){await saveNow();renderResultado();showEditorRefreshVideos()}}
 window.addEventListener('online',()=>autoSync());
 async function sendToDrive(){
+  if(BUILD==='site')return gSendToDrive();
   if(driveBusy)return;const mcp=await getMcp();
   if(!mcp){setDriveMsg('O envio ao Drive só funciona com o app aberto dentro do Claude e com internet.');return}
   if(navigator.onLine===false){setDriveMsg('Sem internet agora. Os vídeos continuam guardados no aparelho; envie quando tiver sinal.');return}
@@ -947,7 +1003,7 @@ $('#pdfBtn').onclick=async()=>{
   const btn=$('#pdfBtn');btn.disabled=true;btn.textContent='Gerando…';
   try{await saveNow();let pend=pendingVideos();
     if(pend&&navigator.onLine!==false&&!driveBusy){driveBusy=true;btn.textContent='Enviando vídeos…';try{await syncVideos(m=>btn.textContent=m.replace(' ao Drive…','…').replace('Enviando vídeo','Vídeo'))}catch(e){}driveBusy=false;await saveNow();pend=pendingVideos();renderResultado();showEditorRefreshVideos();btn.textContent='Gerando…'}
-    if(pend){toast(`${pend} ${pend===1?'vídeo ainda não foi enviado':'vídeos ainda não foram enviados'} ao Drive (sem internet ou com erro), então o PDF sai sem esses links. Gere de novo quando tiver sinal.`,6000)}
+    if(pend){toast(`${pend} ${pend===1?'vídeo ainda não foi enviado':'vídeos ainda não foram enviados'} ao Drive, então o PDF sai sem esses links. ${BUILD==='site'?'Toque em "Enviar vídeos e PDF ao Drive" no final da vistoria.':'Gere de novo quando tiver sinal.'}`,6000)}
     const {blob,name}=buildPDF();await deliver(blob,name)}catch(e){console.error(e);toast('Erro ao gerar o PDF.')}
   btn.disabled=false;btn.textContent='Gerar PDF';
 };
@@ -961,7 +1017,7 @@ async function deliver(blob,name){
 function buildPDF(){
   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'mm',format:'a4'});
   const W=210,H=297,M=15,CW=W-2*M;let y=M;
-  const C={ink:[23,33,38],muted:[90,104,111],line:[210,217,220],accent:[31,90,107],ok:[28,116,67],bad:[174,42,33],na:[95,104,108],soft:[236,239,240]};
+  const C={ink:[23,33,38],muted:[90,104,111],line:[210,217,220],accent:[196,84,10],ok:[28,116,67],bad:[174,42,33],na:[95,104,108],soft:[236,239,240]};
   const col=c=>doc.setTextColor(...c);
   const need=h=>{if(y+h>H-18){doc.addPage();y=M}};
   const text=(t,x,size,style='normal',color=C.ink,maxW=CW)=>{doc.setFont('helvetica',style);doc.setFontSize(size);col(color);const lines=doc.splitTextToSize(String(t),maxW);const lh=size*0.42;need(lines.length*lh);doc.text(lines,x,y+size*0.32);y+=lines.length*lh;return lines.length};
@@ -973,8 +1029,9 @@ function buildPDF(){
     kv('Área seca (referência)',String(p.seco.valor));drawPhotos(p.seco.fotos);
     p.molhadas.forEach((m,j)=>{kv(`Área molhada ${j+1}`,String(m.valor));drawPhotos(m.fotos)});y+=2})};
   // Cabeçalho
-  doc.setFillColor(...C.accent);doc.rect(0,0,W,30,'F');doc.setFont('helvetica','bold');doc.setFontSize(17);doc.setTextColor(255,255,255);
-  doc.text('VISTORIA DE ENTREGA DE APARTAMENTO',M,18);y=40;
+  doc.setFillColor(...C.accent);doc.rect(0,0,W,32,'F');doc.setFillColor(143,59,5);doc.rect(0,0,W,9,'F');doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
+  doc.text('TITÁ SOLUÇÕES DE ENGENHARIA',W/2,6,{align:'center',charSpace:1.2});doc.setFontSize(17);
+  doc.text('VISTORIA DE ENTREGA DE APARTAMENTO',M,23);y=42;
   const d=V.dados;const rows=[['Nome do cliente',d.cliente],['Construtora',d.construtora],['Empreendimento',d.empreendimento],['Apartamento',d.apartamento],['Data da vistoria',fmtDate(d.data)],['Vistoriadora',d.vistoriador],['RRT/ART',d.rrt]];
   for(const [k,v] of rows){doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.muted);doc.text(k.toUpperCase(),M,y+3.5);doc.setFont('helvetica','normal');doc.setFontSize(11);col(C.ink);
     const ls=doc.splitTextToSize(v||'—',CW-45);doc.text(ls,M+45,y+3.5);y+=Math.max(7,ls.length*5+2);doc.setDrawColor(...C.line);doc.line(M,y-1.5,W-M,y-1.5)}
@@ -999,8 +1056,10 @@ function buildPDF(){
         if(fotos.length){const gw=(CW-4)/2;let i=0;while(i<fotos.length){const pair=fotos.slice(i,i+2);const hs=pair.map(p=>Math.min(gw*p.h/p.w,75));const rh=Math.max(...hs);need(rh+3);
           pair.forEach((p,j)=>{const w=Math.min(gw,hs[j]*p.w/p.h);doc.addImage(p.data,'JPEG',M+j*(gw+4),y+1,w,hs[j])});y+=rh+3;i+=2}}
         if(it.umidTest&&val.v==='Não aprovado'&&val.umid)drawUmid(val.umid);
-        (val.videos||[]).forEach((vid,k)=>{const L=V.drive&&V.drive.videos&&V.drive.videos[vid];doc.setFont('helvetica','bold');doc.setFontSize(9);need(5);
-          if(L){col(C.accent);doc.textWithLink(`Vídeo ${k+1} do teste: abrir no Google Drive`,M+2,y+3,{url:L.url});y+=4.5;need(5);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.textWithLink(L.url,M+2,y+3,{url:L.url})}else{col(C.muted);doc.text(BUILD==='site'?`Vídeo ${k+1} do teste: arquivo enviado à parte`:`Vídeo ${k+1} do teste: ainda não enviado ao Drive`,M+2,y+3)}y+=5});
+        const mlinks=(val.vlink||'').split(/\s+/).filter(u=>/^https?:\/\//i.test(u));
+        mlinks.forEach((u,k)=>{doc.setFont('helvetica','bold');doc.setFontSize(9);need(10);col(C.accent);doc.textWithLink(`${mlinks.length>1?'Vídeo '+(k+1)+' do teste':'Vídeo do teste'}: abrir no Google Drive`,M+2,y+3,{url:u});y+=4.5;doc.setFont('helvetica','normal');doc.setFontSize(8.5);const ul=doc.splitTextToSize(u,CW-4);doc.text(ul,M+2,y+3);doc.link(M+2,y,CW-4,ul.length*4,{url:u});y+=ul.length*4+1});
+        if(!mlinks.length)(val.videos||[]).forEach((vid,k)=>{const L=V.drive&&V.drive.videos&&V.drive.videos[vid];doc.setFont('helvetica','bold');doc.setFontSize(9);need(5);
+          if(L){col(C.accent);doc.textWithLink(`Vídeo ${k+1} do teste: abrir no Google Drive`,M+2,y+3,{url:L.url});y+=4.5;need(5);doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.textWithLink(L.url,M+2,y+3,{url:L.url})}else{col(C.muted);doc.text(BUILD==='site'&&!GCLIENT_ID?`Vídeo ${k+1} do teste: arquivo enviado à parte`:`Vídeo ${k+1} do teste: ainda não enviado ao Drive`,M+2,y+3)}y+=5});
         doc.setDrawColor(...C.line);doc.line(M,y,W-M,y);y+=2;
       }
       if(skippedRest(s,sd.vals)){text('Demais itens não se aplicam.',M,9,'italic',C.muted);}
@@ -1016,10 +1075,11 @@ function buildPDF(){
   need(30);y+=6;const r=V.resultado||'Não informado';const rc=r==='Aprovado'?C.ok:r==='Não aprovado'?C.bad:C.na;
   doc.setDrawColor(...rc);doc.setLineWidth(1);doc.rect(M,y,CW,20);doc.setLineWidth(0.2);
   doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.muted);doc.text('RESULTADO DA VISTORIA',M+5,y+7);doc.setFontSize(18);col(rc);doc.text(r.toUpperCase(),M+5,y+16);y+=26;
-  if(V.drive&&V.drive.folderUrl){need(14);doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.ink);doc.text('Vídeos e arquivos desta vistoria no Google Drive:',M,y+4);y+=6;doc.setFont('helvetica','normal');doc.setFontSize(9.5);col(C.accent);doc.textWithLink(V.drive.folderUrl,M,y+4,{url:V.drive.folderUrl});y+=8}
+  const folderLink=(V.pastaLink&&/^https?:\/\//i.test(V.pastaLink))?V.pastaLink:(V.drive&&V.drive.folderUrl);
+  if(folderLink){need(14);doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.ink);doc.text('Vídeos e arquivos desta vistoria no Google Drive:',M,y+4);y+=6;doc.setFont('helvetica','normal');doc.setFontSize(9.5);col(C.accent);const fl=doc.splitTextToSize(folderLink,CW);doc.text(fl,M,y+4);doc.link(M,y,CW,fl.length*4.5,{url:folderLink});y+=fl.length*4.5+4}
   // Rodapé
   const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);col(C.muted);
-    doc.text(`Vistoria de entrega · ${d.empreendimento||''} · Apto ${d.apartamento||''} · ${fmtDate(d.data)}`,M,H-8);doc.text(`Página ${i} de ${n}`,W-M,H-8,{align:'right'})}
+    doc.text(`Titá Soluções de Engenharia · ${d.empreendimento||''} · Apto ${d.apartamento||''} · ${fmtDate(d.data)}`,M,H-8);doc.text(`Página ${i} de ${n}`,W-M,H-8,{align:'right'})}
   const clean=s=>(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
   const name=`Vistoria_Apto_${clean(d.apartamento)||'sem'}_${clean(d.cliente)||'cliente'}_${(d.data||'').split('-').reverse().join('-')}.pdf`;
   return {blob:doc.output('blob'),name};
