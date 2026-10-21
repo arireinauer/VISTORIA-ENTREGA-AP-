@@ -142,6 +142,16 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 .vthumb video{width:100%;max-width:100%;border-radius:8px;background:#000;max-height:220px}
 .photo-btn.vid{border-color:var(--bad);color:var(--bad)}
 .photo-btn.vid.need{border-style:solid;background:var(--bad-bg)}
+.mchk{display:inline-flex;align-items:center;gap:3px;font-size:.68rem;font-weight:700;letter-spacing:.03em;padding:3px 7px;border-radius:6px;flex:none;white-space:nowrap;border:1.5px solid currentColor}
+.mchk svg,.mtag svg{width:13px;height:13px}
+.mchk[hidden],.mline[hidden]{display:none!important}
+.mchk.ok{color:var(--ok);background:var(--ok-bg)}.mchk.bad{color:var(--bad);background:var(--bad-bg)}
+.mline{font-size:.82rem;border-radius:8px;padding:6px 10px;margin-top:-2px}.mline.ok{background:var(--ok-bg);color:var(--ok)}.mline.bad{background:var(--bad-bg);color:var(--bad)}
+.mtag{display:inline-flex;align-items:center;gap:6px;margin-top:6px}.mtag.bad{color:var(--bad)}
+.mgrid{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px;align-items:center}.mgrid b{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.mgrid span{font-size:.92rem}.mgrid input{font:inherit;font-size:16px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+.memog{display:flex;flex-direction:column;gap:10px;padding-top:6px}
+.memoh{font-family:var(--f-display);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:4px}
+.hint.calc{color:var(--ink);background:var(--accent-soft);border-radius:8px;padding:8px 10px;margin-top:0;font-weight:500}
 .skipnote{font-size:.88rem;color:var(--muted);padding:10px 0}
 /* resultado */
 .res-seg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -209,7 +219,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px soli
 <script>
 const BUILD='site';
 const GCLIENT_ID='964892357302-i1u5cuasscofd6fac4pc649upjndp6m1.apps.googleusercontent.com';
-const APP_VERSION='21/10 · 10h15 · Titá';
+const APP_VERSION='21/10 · 11h15 · Conferência';
 /* ============ ESQUEMA DA VISTORIA ============ */
 const AN = ['Aprovado','Não aprovado'];
 const ANN = ['Aprovado','Não aprovado','Não se aplica'];
@@ -274,6 +284,7 @@ const SUBS = [
   {id:'tomadas', nome:'Tomadas', items:[
     {id:'qtd', label:'Quantidade de tomadas', type:'number', nophoto:true},
     {id:'teste', label:'Todas testadas e funcionando?', hint:'Inserir foto ou vídeo dos testes', type:'check', options:AN, obs:'ifNo', photo:true, test:true},
+    {id:'marcatom', label:'Marca das tomadas', type:'text', nophoto:true},
     {id:'volt', label:'Voltagem', type:'choice', options:['127 V','220 V','127 V e 220 V'], nophoto:true},
     {id:'encaixe', label:'Todos os espelhos estão bem encaixados?', type:'check', options:AN, obs:'ifNo'},
     {id:'manchas', label:'Todos os espelhos estão sem manchas?', type:'check', options:AN, obs:'ifNo'},
@@ -289,6 +300,10 @@ const SUBS = [
     {id:'func', label:'Estão funcionando?', type:'check', options:['Sim','Não','Não se aplica'], bad:'Não', obs:'ifNo', test:true},
   ]},
   {id:'quadro', nome:'Quadro elétrico', items:[
+    {id:'marcadisj', label:'Marca dos disjuntores', type:'text', nophoto:true},
+    {id:'circ', label:'Quantidade de circuitos', type:'number', nophoto:true, hintFn:()=>memoV('circuitos')?`Memorial: mínimo de ${memoV('circuitos')} circuitos`:''},
+    {id:'separados', label:'Chuveiro e tomadas de 20 A estão em circuitos separados?', type:'check', options:AN, obs:'ifNo'},
+    {id:'chuveiro', label:'O disjuntor do chuveiro atende a corrente calculada?', type:'check', options:AN, obs:'ifNo', hintFn:chuveiroCalc},
     {id:'tampa', label:'A tampa do quadro está presente e corretamente encaixada?', type:'check', options:AN, obs:'ifNo'},
     {id:'ident', label:'Os disjuntores estão corretamente identificados com adesivos?', type:'check', options:AN, obs:'ifNo'},
     {id:'fiacao', label:'A fiação está corretamente alocada na caixa?', type:'check', options:AN, obs:'ifNo'},
@@ -300,6 +315,7 @@ const SUBS = [
   ]},
   {id:'interfone', nome:'Interfone', items:[
     {id:'tipo', label:'Tipo', type:'choice', options:['Videoporteiro','Analógico']},
+    {id:'marcaint', label:'Marca do interfone', type:'text', nophoto:true},
     {id:'teste', label:'O equipamento foi testado e está acionando a portaria?', type:'check', options:AN, obs:'ifNo', test:true},
     {id:'audio', label:'Qualidade do áudio', type:'check', options:AN, obs:'ifNo'},
     {id:'acab', label:'Acabamento da instalação', type:'check', options:AN, obs:'ifNo'},
@@ -372,6 +388,58 @@ SUBS.splice(1,0,{id:'pisobox', nome:'Piso do box', items:[...SUBS[0].items,
   {id:'caimento', label:'O caimento para o ralo está correto?', hint:'Jogar água e verificar se escoa toda para o ralo, sem empoçar. Grave o vídeo do teste.', type:'check', options:AN, obs:'ifNo', test:true, videoReq:true}]});
 SUBS.splice(2,0,{id:'pisovar', nome:'Piso da varanda', items:[...SUBS[0].items,
   {id:'caimento', label:'O caimento está correto?', hint:'Teste de água: jogar água e verificar se escoa para o ralo ou para fora, sem empoçar e sem correr para dentro do apartamento. Grave o vídeo do teste.', type:'check', options:AN, obs:'ifNo', test:true, videoReq:true}]});
+const MEMO=[
+  {g:'Piso',items:[['piso_secas','Piso áreas secas'],['piso_molhadas','Piso áreas molhadas (inclui sacada)'],['piso_outros','Piso outros'],['soleiras','Soleiras']]},
+  {g:'Parede',items:[['par_secas','Revestimento paredes áreas secas'],['par_molhadas','Revestimento paredes áreas molhadas'],['par_externas','Revestimento paredes externas']]},
+  {g:'Teto',items:[['teto_secas','Teto áreas secas'],['teto_banheiro','Teto banheiro'],['teto_molhadas','Teto áreas molhadas (exceto banheiro)']]},
+  {g:'Esquadrias · portas',items:[['porta_entrada','Portas de entrada (tipo, material, marca)'],['porta_quartos','Portas quartos'],['porta_sacadas','Portas sacadas'],['porta_cozinha','Porta cozinha',{nsa:true}]]},
+  {g:'Esquadrias · janelas',items:[['jan_banheiro','Banheiro'],['jan_quartos','Quartos'],['jan_cozinha','Cozinha']]},
+  {g:'Elétrica',items:[['circuitos','Quantidade mínima de circuitos',{num:true}],['chuveiro_w','Potência máxima do chuveiro (W)',{num:true}],['tensao','Tensão do apartamento',{opts:['127 V','220 V']}],
+    ['marca_tomadas','Marca das tomadas'],['marca_interruptores','Marca dos interruptores'],['marca_disjuntores','Marca dos disjuntores'],['marca_interfone','Marca do interfone']]},
+  {g:'Pontos de tomada e interruptor por ambiente',grid:[['sala','Sala'],['cozinha','Cozinha'],['banheiro','Banheiro'],['quartos','Quartos'],['sacadas','Sacadas']],
+    items:[['sala','Sala'],['cozinha','Cozinha'],['banheiro','Banheiro'],['quartos','Quartos'],['sacadas','Sacadas']].flatMap(([k,l])=>[['tom_'+k,'Tomadas · '+l,{num:true}],['int_'+k,'Interruptores · '+l,{num:true}]])},
+  {g:'Louças e metais',items:[['bancada_cozinha','Bancada cozinha',{nsa:true}],['torneira_cozinha','Torneira cozinha (marca e tipo)'],['bancada_banheiro','Bancada banheiro'],['cuba_banheiro','Cuba banheiro (marca e tipo)'],
+    ['torneira_banheiro','Torneira banheiro (marca e tipo)'],['vaso','Vaso sanitário (marca e tipo)'],['tanque','Tanque de lavar roupa (marca e tipo)'],['torneira_tanque','Torneira tanque (marca e tipo)']]},
+];
+/* ---- conferência automática com o memorial ---- */
+const normT=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+function ambCat(nome){const n=nome||'';
+  if(/^Sala/.test(n))return {area:'secas',tom:'sala',porta:'porta_entrada',teto:'teto_secas'};
+  if(/^Quarto/.test(n))return {area:'secas',tom:'quartos',porta:'porta_quartos',jan:'jan_quartos',teto:'teto_secas'};
+  if(/^Cozinha/.test(n))return {area:'molhadas',tom:'cozinha',porta:'porta_cozinha',jan:'jan_cozinha',teto:'teto_molhadas',bancada:'bancada_cozinha',torneira:'torneira_cozinha'};
+  if(/^Banheiro/.test(n))return {area:'molhadas',tom:'banheiro',jan:'jan_banheiro',teto:'teto_banheiro',bancada:'bancada_banheiro',torneira:'torneira_banheiro',cuba:'cuba_banheiro',vaso:'vaso'};
+  if(/^Varanda/.test(n))return {area:'molhadas',tom:'sacadas',porta:'porta_sacadas',teto:'teto_molhadas'};
+  if(/^Área de serviço/.test(n))return {area:'molhadas',teto:'teto_molhadas',tanque:'tanque',torneira_tanque:'torneira_tanque'};
+  return {}}
+function memoVal(k){if(!k)return '';const m=(V&&V.memorial)||{};if(m[k+'_nsa'])return '';return String(m[k]||'').trim()}
+function txtMatch(found,memo){const f=normT(found),m=normT(memo);if(!f||!m)return null;if(m.includes(f)||f.includes(m))return true;const toks=f.split(' ').filter(t=>t.length>=3);return toks.some(t=>(' '+m+' ').includes(' '+t+' ')||m.includes(t))}
+/* regra por item: devolve a chave do memorial e o tipo de comparação */
+const MEMO_RULES={
+  'piso.tipo':c=>c.area&&['piso_'+c.area,'txt'], 'pisobox.tipo':()=>['piso_molhadas','txt'], 'pisovar.tipo':()=>['piso_molhadas','txt'],
+  'parede.pintura':c=>c.area&&['par_'+c.area,'txt'], 'parede.acabpint':c=>c.area&&['par_'+c.area,'txt'], 'parede.cor':c=>c.area&&['par_'+c.area,'txt'],
+  'teto.tipo':c=>c.teto&&[c.teto,'txt'],
+  'porta.material':c=>c.porta&&[c.porta,'txt'], 'porta.tipo':c=>c.porta&&[c.porta,'txt'],
+  'janela.material':c=>c.jan&&[c.jan,'txt'], 'janela.tipo':c=>c.jan&&[c.jan,'txt'],
+  'tomadas.qtd':c=>c.tom&&['tom_'+c.tom,'num'], 'tomadas.marcatom':()=>['marca_tomadas','txt'],
+  'interruptor.qtd':c=>c.tom&&['int_'+c.tom,'num'], 'interruptor.marca':()=>['marca_interruptores','txt'],
+  'quadro.circ':()=>['circuitos','num'], 'quadro.marcadisj':()=>['marca_disjuntores','txt'],
+  'interfone.marcaint':()=>['marca_interfone','txt'],
+  'bancada.material':c=>c.bancada&&[c.bancada,'txt'], 'bancada.marca':c=>c.torneira&&[c.torneira,'txt'],
+  'cuba.material':c=>c.cuba&&[c.cuba,'txt'],
+  'vaso.tipo':c=>['vaso','txt'], 'vaso.marca':c=>['vaso','txt'],
+  'tanque.material':c=>['tanque','txt'], 'tanque.marca':c=>['torneira_tanque','txt'],
+};
+function foundValue(it,val){if(!val)return '';if(it.type==='number')return String(val.v??'').trim();if(it.type==='text'||it.textField)return String(val.txt||'').trim();if(it.other&&val.v===it.other)return String(val.txt||'').trim();return String(val.v||'').trim()}
+function memoCheck(a,s,it,val){const rule=MEMO_RULES[s.id+'.'+it.id];if(!rule)return null;const r=rule(ambCat(a.nome));if(!r)return null;const [key,kind]=r;
+  const memo=memoVal(key);const found=foundValue(it,val);if(!memo||!found)return null;
+  if(kind==='num'){const fm=numBR(memo),ff=numBR(found);if(!(fm>=0)||!(ff>=0))return null;return {ok:ff>=fm,memo:`mínimo ${memo}`,found}}
+  const ok=txtMatch(found,memo);if(ok===null)return null;return {ok,memo,found}}
+function divTagHTML(){const dv=memoDiverg().length;return dv?`<b class="mtag bad">${ICO_MEMO}${dv} ${dv===1?'item diverge':'itens divergem'} do memorial</b>`:''}
+function memoDiverg(){const out=[];for(const a of V.ambientes){if(!a.ativo)continue;for(const s of subsOf(a)){const sd=a.subs[s.id];if(!sd||!sd.on)continue;for(const it of visibleItems(s,sd.vals)){const c=memoCheck(a,s,it,sd.vals[it.id]);if(c&&!c.ok)out.push({a,s,it,c})}}}return out}
+const memoV=k=>((V&&V.memorial)||{})[k]||'';
+const numBR=x=>parseFloat(String(x).replace(/\./g,'').replace(',','.'));
+function chuveiroCalc(){const w=numBR(memoV('chuveiro_w')),t=numBR(memoV('tensao'));if(!(w>0&&t>0))return 'Preencha a potência do chuveiro e a tensão no Memorial descritivo para o app calcular a corrente.';
+  const i=w/t;return `Pelo memorial: ${w.toLocaleString('pt-BR')} W ÷ ${t} V = ${i.toFixed(1).replace('.',',')} A. O disjuntor do chuveiro precisa atender essa corrente.`}
 const MAX_FOTOS = 10, MAX_VIDEOS = 3;
 const SUB_BY = Object.fromEntries(SUBS.map(s=>[s.id,s]));
 const customSub=c=>({id:c.id,nome:c.nome,custom:true,items:[{id:'aval',label:'Avaliação',type:'check',options:ANN,obs:'ifNo'}]});
@@ -416,6 +484,7 @@ function obsRequired(item,val){if(item.type!=='check'||!val||!val.v)return false
 function itemDone(item,val){
   if(!val)return false;
   if(item.type==='photo')return (val.fotos||[]).length>0;
+  if(item.type==='text')return !!(val.txt||'').trim();
   if(item.type==='number')return val.v!==undefined&&val.v!==null&&String(val.v).trim()!=='';
   if(!val.v)return false;
   if(item.other&&val.v===item.other&&!(val.txt||'').trim())return false;
@@ -534,6 +603,10 @@ function showEditor(){
         </div>
       </div></div>
     </section>
+    <section class="card acc ${openSet.has('memo')?'open':''}" data-acc="memo">
+      <button class="acc-h"><span class="nm">Memorial descritivo</span><span class="cnt" id="memoCnt"></span><span class="tick" id="tk-memo">${CHECK}</span>${CHEV}</button>
+      <div class="acc-b"><div class="pad" id="memoBody">${memoHTML()}</div></div>
+    </section>
     <section class="card acc ${openSet.has('ambs')?'open':''}" data-acc="ambs">
       <button class="acc-h"><span class="nm">Ambientes do apartamento</span><span class="cnt" id="ambCount"></span>${CHEV}</button>
       <div class="acc-b"><div class="pad">
@@ -584,7 +657,8 @@ function subBodyHTML(a,s){
 function itemHTML(a,s,it){
   const val=a.subs[s.id].vals[it.id]||{};const path=`${a.id}|${s.id}|${it.id}`;const fid=path.replace(/\|/g,'-');
   let ctrl='';
-  if(it.type==='number'){ctrl=`<input type="number" inputmode="numeric" min="0" id="n-${fid}" data-num="${path}" value="${esc(val.v??'')}" style="max-width:160px">`}
+  if(it.type==='text'){ctrl=`<input type="text" id="x-${fid}" data-txt="${path}" value="${esc(val.txt||'')}" placeholder="Digite">`}
+  else if(it.type==='number'){ctrl=`<input type="number" inputmode="numeric" min="0" id="n-${fid}" data-num="${path}" value="${esc(val.v??'')}" style="max-width:160px">`}
   else if(it.options){ctrl=`<div class="seg">${it.options.map(o=>{const cls=o==='Não se aplica'?'nav':it.type!=='check'?'':o===(it.bad||'Não aprovado')?'badv':'okv';return `<button class="opt ${cls}" data-opt="${path}" data-v="${esc(o)}" aria-pressed="${val.v===o}">${esc(o)}</button>`}).join('')}</div>`;
     if(it.other&&val.v===it.other)ctrl+=`<input type="text" id="o-${fid}" data-txt="${path}" placeholder="Qual?" value="${esc(val.txt||'')}">`;}
   if(it.type==='photo')ctrl='';
@@ -604,13 +678,15 @@ function itemHTML(a,s,it){
   const vh=!it.test?'':`<div class="vids"><label class="f"><span class="obs-l">Link do vídeo no Google Drive (opcional)</span><input type="url" inputmode="url" id="vl-${fid}" data-vlink="${path}" value="${esc(val.vlink||'')}" placeholder="Cole aqui o link do vídeo"></label>${vids.map(id=>{const vv=videoCache.get(id);return vv?`<div class="vthumb"><video src="${vv.url}" controls playsinline preload="metadata"></video><div class="row">${BUILD==='site'?((V.fotosSalvas||{})[id]?'<span class="pill ok">Salvo no celular</span>':'<span class="pill bad">Não salvo no celular</span>')+(GCLIENT_ID&&V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':''):(V.drive&&V.drive.videos&&V.drive.videos[id]?'<span class="pill ok">No Drive</span>':'<span class="pill na">Só no aparelho</span>')}<button class="btn small" data-dlvid="${id}">Baixar</button><button class="btn small danger" data-delvid="${path}|${id}">Remover</button></div></div>`:''}).join('')}
     ${vids.length>=MAX_VIDEOS?`<span class="hint" style="margin:0">Limite de ${MAX_VIDEOS} vídeos atingido</span>`:`${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?`<span class="obs-l req">${(it.videoMin||1)>1?`Grave ${it.videoMin} vídeos do teste (obrigatório)`:'Vídeo do teste obrigatório'}</span>`:''}<div class="row"><button class="photo-btn vid ${(it.videoReq||(it.videoReqNo&&val.v===(it.bad||'Não aprovado')))&&vids.length<(it.videoMin||1)?'need':''}" data-vid="${path}">${VID}Gravar vídeo</button><button class="photo-btn vid" data-vidgal="${path}">Vídeo da galeria</button><span class="hint" style="margin:0">${vids.length}/${MAX_VIDEOS}</span></div>`}</div>`;
   return `<div class="item" data-item="${path}">
-    <div class="item-h"><span class="q">${it.test?TESTBADGE:''}${esc(it.label)}</span><span class="tick" data-tk-item="${path}">${CHECK}</span></div>
-    ${it.hint?`<div class="hint">${esc(it.hint)}</div>`:''}${ctrl}${obs}${ph}${vh}</div>`;
+    <div class="item-h"><span class="q">${it.test?TESTBADGE:''}${esc(it.label)}</span><span class="mchk" data-mchk="${path}" hidden></span><span class="tick" data-tk-item="${path}">${CHECK}</span></div>
+    <div class="mline" data-mline="${path}" hidden></div>
+    ${(it.hintFn?it.hintFn():it.hint)?`<div class="hint${it.hintFn?' calc':''}">${esc(it.hintFn?it.hintFn():it.hint)}</div>`:''}${ctrl}${obs}${ph}${vh}</div>`;
 }
 function renderResultado(){
   const p=pendencias();
   $('#resultado').innerHTML=`<h2>Resultado da vistoria</h2>
-    <div class="pend">${p.length?`<b style="color:var(--bad);font-size:1.05rem">${p.length} ${p.length===1?'item não aprovado':'itens não aprovados'}</b>`:'<span style="color:var(--muted)">Nenhum item marcado como não aprovado até agora.</span>'}</div>
+    <div class="pend">${p.length?`<b style="color:var(--bad);font-size:1.05rem">${p.length} ${p.length===1?'item não aprovado':'itens não aprovados'}</b>`:'<span style="color:var(--muted)">Nenhum item marcado como não aprovado até agora.</span>'}
+      <span id="divTag">${divTagHTML()}</span></div>
     <div class="res-seg">${['Aprovado','Não aprovado'].map(o=>`<button class="opt ${o==='Aprovado'?'okv':'badv'}" data-res="${o}" aria-pressed="${V.resultado===o}">${o}</button>`).join('')}</div>
     <label class="f">Observações gerais (opcional)<textarea id="obsGerais" rows="3">${esc(V.obsGerais||'')}</textarea></label>
     <label class="f">Link da pasta de vídeos no Google Drive (opcional)<input type="url" inputmode="url" id="pastaLink" value="${esc(V.pastaLink||'')}" placeholder="Cole aqui o link da pasta"></label>
@@ -619,10 +695,21 @@ function renderResultado(){
     <button class="btn mediabtn" id="saveAllPhotos">Salvar fotos e vídeos no celular</button>`;
 }
 
+/* ============ MEMORIAL ============ */
+const ICO_MEMO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>';
+function memoHTML(){const m=V.memorial||{};return `<small style="color:var(--muted)">Anote o que o memorial descritivo especifica. Serve de referência durante a vistoria e sai no PDF.</small>`+
+  MEMO.map(gr=>gr.grid?`<div class="memog"><div class="memoh">${gr.g}</div><div class="mgrid"><span></span><b>Tomadas</b><b>Interruptores</b>${gr.grid.map(([k,l])=>`<span>${l}</span><input type="text" inputmode="numeric" id="m-tom_${k}" data-memo="tom_${k}" value="${esc(m['tom_'+k]||'')}" aria-label="Tomadas ${l}"><input type="text" inputmode="numeric" id="m-int_${k}" data-memo="int_${k}" value="${esc(m['int_'+k]||'')}" aria-label="Interruptores ${l}">`).join('')}</div></div>`:`<div class="memog"><div class="memoh">${gr.g}</div>${gr.items.map(([k,l,o={}])=>{
+    if(o.opts)return `<div class="f"><span class="obs-l">${l}</span><div class="seg">${o.opts.map(x=>`<button class="opt" data-memoopt="${k}|${x}" aria-pressed="${m[k]===x}">${x}</button>`).join('')}</div></div>`;
+    const dis=o.nsa&&m[k+'_nsa'];
+    return `<label class="f">${l}<input type="text" ${o.num?'inputmode="decimal"':''} id="m-${k}" data-memo="${k}" value="${esc(m[k]||'')}" ${dis?'disabled':''}></label>${o.nsa?`<label class="row" style="gap:8px;flex-wrap:nowrap;font-size:.9rem;color:var(--muted)"><input type="checkbox" data-memonsa="${k}" ${dis?'checked':''} style="width:20px;height:20px">Não se aplica</label>`:''}`}).join('')}</div>`).join('')}
+function memoStats(){const m=V.memorial||{};let d=0,t=0;MEMO.forEach(g=>g.items.forEach(([k,l,o={}])=>{t++;if((m[k]||'').toString().trim()||(o.nsa&&m[k+'_nsa']))d++}));return {d,t}}
+function refreshCalcItems(){document.querySelectorAll('[data-item$="|quadro|chuveiro"],[data-item$="|quadro|circ"]').forEach(el=>{const h=el.querySelector('.hint');const {it}=getVal(el.dataset.item,false);if(it&&h)h.textContent=it.hintFn()})}
+
 /* ============ STATUS (verdinhos) ============ */
 function setTick(el,on){if(el)el.classList.toggle('done',!!on)}
 function refreshStatus(){
   setTick($('#tk-dados'),dadosDone());
+  {const ms=memoStats();const mc=$('#memoCnt');if(mc)mc.textContent=`${ms.d}/${ms.t}`;setTick($('#tk-memo'),ms.d===ms.t)}
   for(const a of V.ambientes){if(!a.ativo)continue;
     const as=ambStats(a);const c=document.querySelector(`[data-cnt-amb="${a.id}"]`);if(c)c.textContent=`${as.done}/${as.total}`;
     setTick(document.querySelector(`[data-tk-amb="${a.id}"]`),as.total>0&&as.done===as.total);
@@ -631,8 +718,12 @@ function refreshStatus(){
       setTick(document.querySelector(`[data-tk-sub="${k}"]`),st.done===st.total);
       for(const it of visibleItems(s,a.subs[s.id].vals)){const val=a.subs[s.id].vals[it.id];const p=k+'|'+it.id;
         setTick(document.querySelector(`[data-tk-item="${p}"]`),itemDone(it,val));
+        {const mc=document.querySelector(`[data-mchk="${p}"]`);if(mc){const c=memoCheck(a,s,it,val);const ml=document.querySelector(`[data-mline="${p}"]`);
+          if(!c){mc.hidden=true;if(ml)ml.hidden=true}else{mc.hidden=false;mc.className='mchk '+(c.ok?'ok':'bad');mc.innerHTML=ICO_MEMO+(c.ok?'Memorial ✓':'Memorial ✗');mc.title=c.ok?'Confere com o memorial':'Diverge do memorial';
+            if(ml){ml.hidden=false;ml.className='mline '+(c.ok?'ok':'bad');ml.textContent=`Memorial: ${c.memo} · Encontrado: ${c.found}`}}}}
         const ol=document.querySelector(`[data-obsl="${p}"]`);if(ol)ol.classList.toggle('req',obsRequired(it,val)&&!((val&&val.obs)||'').trim());}}}
   updateSaveBtns();
+  {const dt=$('#divTag');if(dt)dt.innerHTML=divTagHTML()}
   const t=totalStats();$('#progTxt').textContent=`${t.done} de ${t.total} itens preenchidos`;$('#progBar').style.width=(t.total?Math.round(t.done/t.total*100):0)+'%';
 }
 function getVal(path,create=true){const [aid,sid,iid]=path.split('|');const a=V.ambientes.find(x=>x.id===aid);const vals=a.subs[sid].vals;if(!vals[iid]&&create)vals[iid]={};const S=getSub(a,sid);return {a,s:S,it:S.items.find(i=>i.id===iid),val:vals[iid]}}
@@ -654,6 +745,7 @@ function bindEditor(){
       renderResultado();refreshStatus();scheduleSave();return}
     if(b.dataset.res){V.resultado=V.resultado===b.dataset.res?'':b.dataset.res;renderResultado();scheduleSave();return}
     if(b.dataset.cam){pendingPhotoPath=b.dataset.cam;$('#camInput').value='';$('#camInput').click();return}
+    if(b.dataset.memoopt){const [k,v]=b.dataset.memoopt.split('|');V.memorial=V.memorial||{};V.memorial[k]=V.memorial[k]===v?'':v;$('#memoBody').innerHTML=memoHTML();refreshCalcItems();refreshStatus();scheduleSave();return}
     if(b.dataset.umid){openSheet(b.dataset.umid);return}
     if(b.dataset.addSub){const row=document.querySelector(`[data-addsub-row="${b.dataset.addSub}"]`);row.hidden=!row.hidden;if(!row.hidden)row.querySelector('input').focus();return}
     if(b.dataset.addsubOk){const aid=b.dataset.addsubOk;const inp=$('#ns-'+aid);const n=inp.value.trim();if(!n){inp.focus();return}const a=V.ambientes.find(x=>x.id===aid);
@@ -689,6 +781,8 @@ function bindEditor(){
     if(t.dataset.txt){getVal(t.dataset.txt).val.txt=t.value;refreshStatus();scheduleSave();return}
     if(t.dataset.num){getVal(t.dataset.num).val.v=t.value;refreshStatus();scheduleSave();return}
     if(t.id==='obsGerais'){V.obsGerais=t.value;scheduleSave();return}
+    if(t.dataset.memo){V.memorial=V.memorial||{};V.memorial[t.dataset.memo]=t.value;refreshCalcItems();refreshStatus();renderResultado();scheduleSave();return}
+    if(t.dataset.memonsa){V.memorial=V.memorial||{};V.memorial[t.dataset.memonsa+'_nsa']=t.checked;const inp=$('#m-'+t.dataset.memonsa);if(inp)inp.disabled=t.checked;refreshStatus();scheduleSave();return}
     if(t.dataset.vlink){getVal(t.dataset.vlink).val.vlink=t.value.trim();scheduleSave();return}
     if(t.id==='pastaLink'){V.pastaLink=t.value.trim();scheduleSave();return}
   };
@@ -1036,6 +1130,12 @@ function buildPDF(){
   for(const [k,v] of rows){doc.setFont('helvetica','bold');doc.setFontSize(10);col(C.muted);doc.text(k.toUpperCase(),M,y+3.5);doc.setFont('helvetica','normal');doc.setFontSize(11);col(C.ink);
     const ls=doc.splitTextToSize(v||'—',CW-45);doc.text(ls,M+45,y+3.5);y+=Math.max(7,ls.length*5+2);doc.setDrawColor(...C.line);doc.line(M,y-1.5,W-M,y-1.5)}
   y+=4;
+  {const m=V.memorial||{};const filled=MEMO.map(g=>({g:g.g,rows:g.items.map(([k,l,o={}])=>[l,o.nsa&&m[k+'_nsa']?'Não se aplica':(m[k]||'').toString().trim()]).filter(r=>r[1])})).filter(g=>g.rows.length);
+   if(filled.length){need(14);doc.setFont('helvetica','bold');doc.setFontSize(12);col(C.accent);doc.text('MEMORIAL DESCRITIVO (REFERÊNCIA)',M,y+4);y+=8;
+    for(const g of filled){need(10);doc.setFont('helvetica','bold');doc.setFontSize(9.5);col(C.ink);doc.text(g.g.toUpperCase(),M,y+3);y+=5;
+      for(const [l,v] of g.rows){doc.setFont('helvetica','normal');doc.setFontSize(9);col(C.muted);const ll=doc.splitTextToSize(l,62);col(C.ink);const vl=doc.splitTextToSize(v,CW-66);const h=Math.max(ll.length,vl.length)*4+1.5;need(h);col(C.muted);doc.text(ll,M+2,y+3);col(C.ink);doc.text(vl,M+66,y+3);y+=h}
+      y+=2}
+    y+=2}}
   const ambs=V.ambientes.filter(a=>a.ativo);
   text('Ambientes vistoriados: '+(ambs.map(a=>a.nome).join(', ')||'nenhum'),M,10,'normal',C.muted);y+=4;
   const statusColor=(v,it)=>!v?C.ink:v==='Não se aplica'?C.na:(!it||it.type!=='check')?C.ink:v===(it.bad||'Não aprovado')?C.bad:C.ok;
@@ -1045,11 +1145,13 @@ function buildPDF(){
       need(16);doc.setFont('helvetica','bold');doc.setFontSize(11);col(C.ink);doc.text(s.nome.toUpperCase(),M,y+4);doc.setDrawColor(...C.accent);doc.setLineWidth(0.5);doc.line(M,y+6,M+CW,y+6);doc.setLineWidth(0.2);y+=9;
       const vis=visibleItems(s,sd.vals);
       for(const it of vis){const val=sd.vals[it.id]||{};
-        let ans=it.type==='photo'?`${(val.fotos||[]).length} foto(s)`:it.type==='number'?(val.v!==undefined&&val.v!==''?String(val.v):'—'):(val.v||'—');if(it.other&&val.v===it.other&&val.txt)ans=val.txt;
+        let ans=it.type==='text'?(val.txt||'—'):it.type==='photo'?`${(val.fotos||[]).length} foto(s)`:it.type==='number'?(val.v!==undefined&&val.v!==''?String(val.v):'—'):(val.v||'—');if(it.other&&val.v===it.other&&val.txt)ans=val.txt;
         need(8);const labelLines=doc.setFont('helvetica','normal').setFontSize(10).splitTextToSize(it.label,CW-52);
         doc.setFont('helvetica','normal');doc.setFontSize(10);col(C.ink);doc.text(labelLines,M,y+3.5);
         doc.setFont('helvetica','bold');col(statusColor(val.v,it));const al=doc.splitTextToSize(ans,48);doc.text(al,W-M,y+3.5,{align:'right'});
         y+=Math.max(labelLines.length,al.length)*4.4+1.5;
+        {const mc=memoCheck(a,s,it,val);if(mc){doc.setFont('helvetica','bold');doc.setFontSize(8.5);col(mc.ok?C.ok:C.bad);const ml=doc.splitTextToSize(`Memorial: ${mc.ok?'confere':'diverge'} (memorial: ${mc.memo} · encontrado: ${mc.found})`,CW-4);need(ml.length*3.8);doc.text(ml,M+2,y+2.5);y+=ml.length*3.8+1}}
+        if(it.hintFn){const hh=it.hintFn();if(hh&&!hh.startsWith('Preencha')){doc.setFont('helvetica','normal');doc.setFontSize(8.5);col(C.muted);const hl=doc.splitTextToSize(hh,CW-4);need(hl.length*3.8);doc.text(hl,M+2,y+2.5);y+=hl.length*3.8+1}}
         if(it.textField&&val.txt&&val.txt.trim()){doc.setFont('helvetica','normal');doc.setFontSize(9.5);col(C.ink);const tl=doc.splitTextToSize(`${it.textField.label}: ${val.txt.trim()}`,CW-4);need(tl.length*4);doc.text(tl,M+2,y+3);y+=tl.length*4+1}
         if(val.obs&&val.obs.trim()){doc.setFont('helvetica','italic');doc.setFontSize(9);col(C.muted);const ol=doc.splitTextToSize('Obs.: '+val.obs.trim(),CW-4);need(ol.length*4);doc.text(ol,M+2,y+3);y+=ol.length*4+1}
         const fotos=(val.fotos||[]).map(f=>photoCache.get(f)).filter(Boolean);
@@ -1067,6 +1169,7 @@ function buildPDF(){
     }
   }
   // Pendências
+  {const dv=memoDiverg();if(dv.length){need(16);y+=4;doc.setFont('helvetica','bold');doc.setFontSize(12);col(C.bad);doc.text(`DIVERGÊNCIAS COM O MEMORIAL: ${dv.length}`,M,y+5);y+=9;dv.forEach(x=>{text(`${x.a.nome} › ${x.s.nome} › ${x.it.label}: memorial ${x.c.memo}, encontrado ${x.c.found}`,M,9.5,'normal',C.ink)});y+=2}}
   const p=pendencias();need(20);y+=4;doc.setFont('helvetica','bold');doc.setFontSize(13);col(C.ink);doc.text('RESUMO DE PENDÊNCIAS',M,y+5);y+=10;
   if(!p.length)text('Nenhum item não aprovado.',M,10,'normal',C.muted);
   p.forEach((x,i)=>{text(`${i+1}. ${x.amb} › ${x.sub} › ${x.item}`,M,10,'bold',C.bad);if(x.obs)text(x.obs,M+5,9.5,'normal',C.ink,CW-5);y+=1.5});
